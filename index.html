@@ -414,10 +414,11 @@
                                 <select id="form-status" required
                                     class="mt-1 block w-full py-2 px-3 border border-slate-300 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
                                     <option value="En cours">En cours</option>
-                                    <option value="En cours">En route vers la prochaine destination</option>
-                                    <option value="En cours">Sur le retour</option>
+                                    <option value="En route vers la prochaine destination">En route vers la prochaine destination</option>
+                                    <option value="En pause">En pause</option>
+                                    <option value="Sur le retour">Sur le retour</option>
+                                    <option value="Bloqué dans les bouchons">Bloqué dans les bouchons</option>
                                     <option value="Terminé">Terminé</option>
-                                    <option value="En cours">Chaffeur en pause</option>
                                 </select>
                             </div>
                         </div>
@@ -497,8 +498,12 @@
                                 <select id="filter-status" onchange="renderOrdersTable()"
                                     class="block w-full py-2 px-3 border border-slate-300 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
                                     <option value="">Tous les statuts</option>
-                                    <option value="En cours">En cours uniquement</option>
-                                    <option value="Terminé">Terminés uniquement</option>
+                                    <option value="En cours">En cours</option>
+                                    <option value="En route vers la prochaine destination">En route vers la prochaine destination</option>
+                                    <option value="En pause">En pause</option>
+                                    <option value="Sur le retour">Sur le retour</option>
+                                    <option value="Bloqué dans les bouchons">Bloqué dans les bouchons</option>
+                                    <option value="Terminé">Terminé</option>
                                 </select>
                             </div>
                         </div>
@@ -617,6 +622,10 @@
                             <div class="flex justify-between">
                                 <span>CHAUFFEUR VL :</span>
                                 <span class="font-bold uppercase text-stone-800" id="ticket-driver">--</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>STATUT TRANSFERT :</span>
+                                <span class="font-bold uppercase text-stone-800" id="ticket-status">--</span>
                             </div>
                             <div class="flex justify-between">
                                 <span>PRÉLÈVEMENT LE :</span>
@@ -1183,9 +1192,20 @@
                 const formattedTime = dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 
                 const currentStatus = order.status || 'En cours';
-                const statusBadgeClass = currentStatus === 'En cours'
-                    ? 'bg-amber-100 text-amber-800 border-amber-200'
-                    : 'bg-emerald-100 text-emerald-800 border-emerald-200';
+                let statusBadgeClass = 'bg-slate-50 text-slate-800 border-slate-200';
+                if (currentStatus === 'En cours') {
+                    statusBadgeClass = 'bg-slate-100 text-slate-700 border-slate-300';
+                } else if (currentStatus === 'En route vers la prochaine destination') {
+                    statusBadgeClass = 'bg-blue-50 text-blue-700 border-blue-200';
+                } else if (currentStatus === 'En pause') {
+                    statusBadgeClass = 'bg-amber-50 text-amber-700 border-amber-200';
+                } else if (currentStatus === 'Sur le retour') {
+                    statusBadgeClass = 'bg-indigo-50 text-indigo-700 border-indigo-200';
+                } else if (currentStatus === 'Bloqué dans les bouchons') {
+                    statusBadgeClass = 'bg-rose-50 text-rose-700 border-rose-200';
+                } else if (currentStatus === 'Terminé') {
+                    statusBadgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                }
 
                 // Navigation URLs if address available
                 const hasNav = order.pickingCity || order.pickingAddress;
@@ -1409,6 +1429,7 @@
             document.getElementById('ticket-weight').textContent = `${parseFloat(order.weight).toFixed(2)} kg`;
             document.getElementById('ticket-avg-weight').textContent = `${avgWeight.toFixed(2)} kg`;
             document.getElementById('ticket-driver').textContent = order.driver;
+            document.getElementById('ticket-status').textContent = order.status || "En cours";
             document.getElementById('ticket-date').textContent = formattedDate;
             document.getElementById('ticket-comments').textContent = order.comment || "Aucune observation renseignée.";
             document.getElementById('ticket-barcode-num').textContent = `*LGB-LOT-${order.lotNumber.toUpperCase()}*`;

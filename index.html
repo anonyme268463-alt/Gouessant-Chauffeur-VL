@@ -190,20 +190,6 @@
                     </div>
                 </form>
 
-                <!-- Help details & Default accounts -->
-                <div class="mt-8 pt-6 border-t border-slate-100">
-                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Identifiants de test configurés :</h4>
-                    <div class="bg-emerald-50/70 border border-emerald-100 rounded-xl p-3 text-xs space-y-1.5 text-emerald-800">
-                        <div class="flex justify-between">
-                            <span><i class="fa-solid fa-user-circle mr-1"></i> Chauffeur 1 :</span>
-                            <span class="font-mono bg-white px-1.5 py-0.5 rounded shadow-sm border border-emerald-200">chauffeur1 / password123</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span><i class="fa-solid fa-truck-pickup mr-1"></i> Chauffeur 2 :</span>
-                            <span class="font-mono bg-white px-1.5 py-0.5 rounded shadow-sm border border-emerald-200">driver / legouessant</span>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
@@ -788,6 +774,28 @@
                                 </button>
                             </div>
 
+                            <!-- Create New Driver Profile Form -->
+                            <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+                                <h5 class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                                    <i class="fa-solid fa-user-plus text-emerald-600"></i>
+                                    <span>Créer un nouveau profil chauffeur</span>
+                                </h5>
+                                <form id="admin-create-driver-form" onsubmit="adminCreateDriver(event)" class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                    <div>
+                                        <input type="text" id="admin-new-fullname" required placeholder="Nom Complet (ex: Jean Dupont)" class="w-full px-2 py-1.5 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                                    </div>
+                                    <div>
+                                        <input type="text" id="admin-new-username" required placeholder="Identifiant unique" class="w-full px-2 py-1.5 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <input type="password" id="admin-new-password" required placeholder="Mot de passe" class="flex-1 px-2 py-1.5 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                                        <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 text-xs font-bold rounded shadow transition">
+                                            Ajouter
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+
                             <!-- Manage Chauffeurs / Accounts -->
                             <div>
                                 <h5 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
@@ -795,7 +803,7 @@
                                     <span>Comptes Chauffeurs de la Plateforme</span>
                                 </h5>
                                 <div class="bg-slate-50 border border-slate-100 rounded-xl overflow-hidden mt-2">
-                                    <ul id="settings-accounts-list" class="divide-y divide-slate-200 text-xs text-slate-600">
+                                    <ul id="settings-accounts-list" class="divide-y divide-slate-200 text-xs text-slate-600 space-y-2 p-2">
                                         <!-- Registered users injected here -->
                                     </ul>
                                 </div>
@@ -1668,8 +1676,8 @@
             accounts.forEach(acc => {
                 const isCurrentUser = currentUser && acc.username === currentUser.username;
                 accountsHTML += `
-                    <li class="px-4 py-3 bg-white space-y-2">
-                        <div class="flex justify-between items-center">
+                    <li class="px-4 py-3 bg-white space-y-2 border border-slate-100 rounded-lg shadow-sm">
+                        <div class="flex justify-between items-center pb-2 border-b border-slate-100">
                             <div>
                                 <span class="font-bold text-slate-800">${acc.fullname}</span>
                                 <span class="text-slate-400 ml-1.5 text-[10px] font-mono bg-slate-100 px-1.5 py-0.5 rounded">@${acc.username}</span>
@@ -1683,10 +1691,23 @@
                                 `}
                             </div>
                         </div>
-                        <div class="flex gap-2 items-center">
-                            <input type="text" id="admin-pass-${acc.username}" placeholder="Nouveau m.d.p." class="flex-1 px-2 py-1 text-[11px] border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-emerald-500">
-                            <button onclick="adminChangePassword('${acc.username}')" class="bg-slate-200 hover:bg-emerald-600 hover:text-white px-2 py-1 text-[10px] font-bold rounded transition">
-                                Modifier le MDP
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-400 uppercase">Nom Complet</label>
+                                <input type="text" id="admin-fullname-${acc.username}" value="${acc.fullname}" class="w-full px-2 py-1 text-[11px] border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-400 uppercase">Identifiant</label>
+                                <input type="text" id="admin-user-${acc.username}" value="${acc.username}" class="w-full px-2 py-1 text-[11px] border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-400 uppercase">Nouveau MDP</label>
+                                <input type="password" id="admin-pass-${acc.username}" placeholder="Inchangé si vide" class="w-full px-2 py-1 text-[11px] border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                            </div>
+                        </div>
+                        <div class="text-right pt-1">
+                            <button onclick="adminUpdateAccount('${acc.username}')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 text-[10px] font-bold rounded shadow transition">
+                                <i class="fa-solid fa-save mr-1"></i> Mettre à jour
                             </button>
                         </div>
                     </li>
@@ -1695,20 +1716,75 @@
             accountsList.innerHTML = accountsHTML;
         }
 
-        function adminChangePassword(username) {
-            const inputId = `admin-pass-${username}`;
-            const newPassword = document.getElementById(inputId).value.trim();
-            if (!newPassword) {
-                showToast("Veuillez saisir un nouveau mot de passe.", "warning");
+        function adminCreateDriver(event) {
+            event.preventDefault();
+            const fullname = document.getElementById('admin-new-fullname').value.trim();
+            const username = document.getElementById('admin-new-username').value.trim().toLowerCase();
+            const password = document.getElementById('admin-new-password').value;
+
+            if (!fullname || !username || !password) {
+                showToast("Veuillez remplir tous les champs de création.", "warning");
                 return;
             }
 
-            const accIndex = accounts.findIndex(acc => acc.username.toLowerCase() === username.toLowerCase());
+            if (accounts.some(acc => acc.username.toLowerCase() === username)) {
+                showToast("Cet identifiant est déjà utilisé.", "error");
+                return;
+            }
+
+            const newUser = { username, password, fullname };
+            accounts.push(newUser);
+            localStorage.setItem('lg_accounts', JSON.stringify(accounts));
+
+            // Reset form
+            document.getElementById('admin-create-driver-form').reset();
+
+            showToast(`Chauffeur ${fullname} créé avec succès !`, "success");
+            renderSettingsContent();
+        }
+
+        function adminUpdateAccount(originalUsername) {
+            const fullnameVal = document.getElementById(`admin-fullname-${originalUsername}`).value.trim();
+            const usernameVal = document.getElementById(`admin-user-${originalUsername}`).value.trim().toLowerCase();
+            const passwordVal = document.getElementById(`admin-pass-${originalUsername}`).value.trim();
+
+            if (!fullnameVal || !usernameVal) {
+                showToast("Le nom complet et l'identifiant sont obligatoires.", "warning");
+                return;
+            }
+
+            // Check if username is already taken by ANOTHER account
+            const duplicate = accounts.find(acc => acc.username.toLowerCase() === usernameVal && acc.username.toLowerCase() !== originalUsername.toLowerCase());
+            if (duplicate) {
+                showToast("Cet identifiant est déjà utilisé.", "error");
+                return;
+            }
+
+            const accIndex = accounts.findIndex(acc => acc.username.toLowerCase() === originalUsername.toLowerCase());
             if (accIndex !== -1) {
-                accounts[accIndex].password = newPassword;
+                accounts[accIndex].fullname = fullnameVal;
+                accounts[accIndex].username = usernameVal;
+                if (passwordVal) {
+                    accounts[accIndex].password = passwordVal;
+                }
+
+                // If updated account is the current logged-in driver, sync profile info
+                if (currentUser && originalUsername.toLowerCase() === currentUser.username.toLowerCase()) {
+                    currentUser = { ...accounts[accIndex] };
+                    if (localStorage.getItem('lg_current_user')) {
+                        localStorage.setItem('lg_current_user', JSON.stringify(currentUser));
+                    } else {
+                        sessionStorage.setItem('lg_current_user', JSON.stringify(currentUser));
+                    }
+                    document.getElementById('header-driver-name').textContent = currentUser.fullname;
+                    document.getElementById('form-driver').value = currentUser.fullname;
+                }
+
                 localStorage.setItem('lg_accounts', JSON.stringify(accounts));
-                document.getElementById(inputId).value = "";
-                showToast(`Mot de passe mis à jour pour @${username}.`, "success");
+                showToast(`Compte de ${fullnameVal} mis à jour avec succès.`, "success");
+                renderSettingsContent();
+            } else {
+                showToast("Compte introuvable.", "error");
             }
         }
 

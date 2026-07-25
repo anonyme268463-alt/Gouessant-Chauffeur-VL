@@ -71,8 +71,12 @@ def run_cuj():
             page.locator("#form-weight").fill("345.8")
             page.wait_for_timeout(500)
 
-            # Set Producer
+            # Set Producer and Location
             page.locator("#form-producer").fill("GAEC de la Vallée - M. Robert")
+            page.wait_for_timeout(500)
+            page.locator("#form-picking-city").fill("Loudéac")
+            page.wait_for_timeout(500)
+            page.locator("#form-picking-address").fill("5 Rue de la Fontaine")
             page.wait_for_timeout(500)
 
             # Set Comment
@@ -119,13 +123,19 @@ def run_cuj():
             page.wait_for_timeout(1000)
             page.screenshot(path="/home/jules/verification/screenshots/06_settings_modal.png")
 
-            # Add a custom variety
-            print("Adding custom potato variety 'Celtiane'...")
-            page.locator("#setting-new-variety").fill("Celtiane")
-            page.wait_for_timeout(500)
-            page.locator("button:has-text('Ajouter')").click()
+            # Go to Admin tab
+            print("Switching to Admin Tab...")
+            page.locator("#settings-tab-admin").click()
             page.wait_for_timeout(1000)
-            page.screenshot(path="/home/jules/verification/screenshots/07_variety_added.png")
+            page.screenshot(path="/home/jules/verification/screenshots/08_admin_locked_tab.png")
+
+            # Unlock admin tab with 0342 PIN
+            print("Unlocking with PIN 0342...")
+            page.locator("#admin-pin-input").fill("0342")
+            page.wait_for_timeout(500)
+            page.locator("button:has-text('Déverrouiller')").click()
+            page.wait_for_timeout(1000)
+            page.screenshot(path="/home/jules/verification/screenshots/09_admin_unlocked_tab.png")
 
             # Close settings
             page.locator("button:has-text('Fermer')").last.click()

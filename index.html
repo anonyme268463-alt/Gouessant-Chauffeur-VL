@@ -390,19 +390,45 @@
                                 placeholder="GAEC de la lande, Ferme Martin...">
                         </div>
 
-                        <!-- Row 5: Driver & Date/Time -->
+                        <!-- Row 4.5: Picking Location (Lieu prenant) -->
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label for="form-picking-city" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Ville de picking <span class="text-rose-500">*</span></label>
+                                <input type="text" id="form-picking-city" required
+                                    class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm placeholder-slate-400"
+                                    placeholder="Loudéac, Lamballe...">
+                            </div>
+
+                            <div>
+                                <label for="form-picking-address" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Adresse précise (Lieu prenant)</label>
+                                <input type="text" id="form-picking-address"
+                                    class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm placeholder-slate-400"
+                                    placeholder="La Ville-Ès-Lan, 4 Rue de...">
+                            </div>
+                        </div>
+
+                        <!-- Row 5: Driver, Date/Time & Transfer Status -->
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <div>
                                 <label for="form-driver" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Nom Chauffeur <span class="text-rose-500">*</span></label>
                                 <input type="text" id="form-driver" required
-                                    class="mt-1 block w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm bg-slate-50 text-slate-500 font-medium"
+                                    class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm bg-slate-50 text-slate-500 font-medium"
                                     placeholder="Chauffeur" readonly>
                             </div>
 
                             <div>
                                 <label for="form-datetime" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Date & Heure <span class="text-rose-500">*</span></label>
                                 <input type="datetime-local" id="form-datetime" required
-                                    class="mt-1 block w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm font-medium">
+                                    class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-medium">
+                            </div>
+
+                            <div>
+                                <label for="form-status" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Statut transfert <span class="text-rose-500">*</span></label>
+                                <select id="form-status" required
+                                    class="mt-1 block w-full py-2 px-3 border border-slate-300 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                                    <option value="En cours">En cours</option>
+                                    <option value="Terminé">Terminé</option>
+                                </select>
                             </div>
                         </div>
 
@@ -458,21 +484,31 @@
 
                         <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 pt-2">
                             <!-- Search query bar -->
-                            <div class="sm:col-span-7 relative">
+                            <div class="sm:col-span-6 relative">
                                 <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                                     <i class="fa-solid fa-magnifying-glass text-sm"></i>
                                 </span>
                                 <input type="text" id="search-query" oninput="renderOrdersTable()"
                                     class="block w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm placeholder-slate-400"
-                                    placeholder="Rechercher par lot, exploitant, chauffeur...">
+                                    placeholder="Lot, exploitant, chauffeur, ville...">
                             </div>
 
                             <!-- Variety filter -->
-                            <div class="sm:col-span-5">
+                            <div class="sm:col-span-3">
                                 <select id="filter-variety" onchange="renderOrdersTable()"
                                     class="block w-full py-2 px-3 border border-slate-300 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
                                     <option value="">Toutes les variétés</option>
                                     <!-- Options injected via JS -->
+                                </select>
+                            </div>
+
+                            <!-- Status filter -->
+                            <div class="sm:col-span-3">
+                                <select id="filter-status" onchange="renderOrdersTable()"
+                                    class="block w-full py-2 px-3 border border-slate-300 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
+                                    <option value="">Tous les statuts</option>
+                                    <option value="En cours">En cours uniquement</option>
+                                    <option value="Terminé">Terminés uniquement</option>
                                 </select>
                             </div>
                         </div>
@@ -566,6 +602,10 @@
                                 <span>EXPLOITANT :</span>
                                 <span class="font-bold text-stone-900" id="ticket-producer">--</span>
                             </div>
+                            <div class="flex justify-between">
+                                <span>LIEU PRENANT :</span>
+                                <span class="font-bold text-stone-900" id="ticket-location">--</span>
+                            </div>
                         </div>
 
                         <div class="py-4 border-b border-stone-200 space-y-2 text-xs">
@@ -640,7 +680,7 @@
             <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
 
             <!-- Modal Content Card -->
-            <div class="inline-block align-middle bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+            <div class="inline-block align-middle bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
                 <!-- Header -->
                 <div class="bg-slate-50 px-6 py-4 border-b border-slate-100 flex justify-between items-center">
                     <div class="flex items-center gap-2 text-slate-700">
@@ -652,19 +692,56 @@
                     </button>
                 </div>
 
+                <!-- Settings Tabs Menu -->
+                <div class="flex border-b border-slate-200 bg-slate-50">
+                    <button id="settings-tab-profile" onclick="switchSettingsTab('profile')" class="flex-1 py-3 text-center text-xs font-bold uppercase tracking-wider border-b-2 border-emerald-600 text-emerald-700">
+                        <i class="fa-solid fa-user-circle mr-1"></i>Mon Profil
+                    </button>
+                    <button id="settings-tab-varieties" onclick="switchSettingsTab('varieties')" class="flex-1 py-3 text-center text-xs font-bold uppercase tracking-wider border-b-2 border-transparent text-slate-500 hover:text-slate-800">
+                        <i class="fa-solid fa-tags mr-1"></i>Variétés
+                    </button>
+                    <button id="settings-tab-admin" onclick="switchSettingsTab('admin')" class="flex-1 py-3 text-center text-xs font-bold uppercase tracking-wider border-b-2 border-transparent text-slate-500 hover:text-slate-800">
+                        <i class="fa-solid fa-lock mr-1"></i>Administration PIN
+                    </button>
+                </div>
+
                 <!-- Settings Content -->
-                <div class="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
-                    <!-- Manage Varieties -->
-                    <div>
-                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                            <i class="fa-solid fa-tags text-emerald-600"></i>
-                            <span>Variétés de pommes de terre de test</span>
-                        </h4>
-                        <p class="text-xs text-slate-400 mb-3">Ajoutez ou supprimez des variétés prédéfinies dans votre formulaire.</p>
+                <div class="p-6 space-y-6 max-h-[60vh] overflow-y-auto">
+
+                    <!-- TAB 1: Mon Profil -->
+                    <div id="settings-panel-profile" class="space-y-4">
+                        <h4 class="text-sm font-bold text-slate-800 border-b pb-2">Modifier mes informations de chauffeur</h4>
+                        <form id="profile-edit-form" onsubmit="handleProfileUpdate(event)" class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Nom Complet</label>
+                                <input type="text" id="profile-fullname" required class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Identifiant de connexion</label>
+                                    <input type="text" id="profile-username" required class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Nouveau mot de passe</label>
+                                    <input type="password" id="profile-password" placeholder="Laisser vide pour ne pas modifier" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                                </div>
+                            </div>
+                            <div class="pt-2 text-right">
+                                <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition">
+                                    Enregistrer mon profil
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- TAB 2: Variétés -->
+                    <div id="settings-panel-varieties" class="space-y-4 hidden">
+                        <h4 class="text-sm font-bold text-slate-800 border-b pb-2">Variétés de pommes de terre</h4>
+                        <p class="text-xs text-slate-400 mb-3">Ajoutez ou supprimez des variétés de pommes de terre disponibles dans le formulaire.</p>
 
                         <!-- Add variety input -->
                         <div class="flex gap-2">
-                            <input type="text" id="setting-new-variety" class="flex-1 px-3 py-1.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-sm" placeholder="Nouvelle variété (ex: Celtiane)">
+                            <input type="text" id="setting-new-variety" class="flex-1 px-3 py-1.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 text-sm" placeholder="Nouvelle variété (ex: Celtiane)">
                             <button onclick="addCustomVariety()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition">
                                 Ajouter
                             </button>
@@ -676,34 +753,71 @@
                         </div>
                     </div>
 
-                    <!-- Manage Chauffeurs / Accounts -->
-                    <div class="border-t border-slate-100 pt-5">
-                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                            <i class="fa-solid fa-users text-emerald-600"></i>
-                            <span>Comptes Chauffeurs enregistrés</span>
-                        </h4>
-                        <div class="bg-slate-50 border border-slate-100 rounded-xl overflow-hidden mt-2">
-                            <ul id="settings-accounts-list" class="divide-y divide-slate-200 text-xs text-slate-600">
-                                <!-- Registered users injected here -->
-                            </ul>
+                    <!-- TAB 3: Administration (PIN Protected) -->
+                    <div id="settings-panel-admin" class="space-y-4 hidden">
+                        <!-- Locked State -->
+                        <div id="admin-locked-view" class="space-y-4 text-center py-6">
+                            <div class="inline-flex p-3 bg-amber-50 text-amber-600 rounded-full mb-2">
+                                <i class="fa-solid fa-shield-halved text-2xl"></i>
+                            </div>
+                            <h4 class="text-sm font-bold text-slate-800">Accès Administration Sécurisé</h4>
+                            <p class="text-xs text-slate-400 max-w-sm mx-auto">Veuillez saisir le code confidentiel à 4 chiffres pour déverrouiller la gestion globale de la coopérative.</p>
+
+                            <div class="flex justify-center gap-2 mt-4 max-w-xs mx-auto">
+                                <input type="password" id="admin-pin-input" maxlength="4" class="w-24 text-center px-3 py-2 border-2 border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-bold tracking-widest" placeholder="••••">
+                                <button onclick="unlockAdminPanel()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition">
+                                    Déverrouiller
+                                </button>
+                            </div>
                         </div>
-                    </div>
 
-                    <!-- Database Maintenance / Reset -->
-                    <div class="border-t border-slate-100 pt-5">
-                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 text-rose-500 flex items-center gap-1.5">
-                            <i class="fa-solid fa-triangle-exclamation"></i>
-                            <span>Zone de Danger</span>
-                        </h4>
-                        <p class="text-xs text-slate-400 mb-3">Ces actions suppriment définitivement vos données d'échantillonnage de cet appareil.</p>
+                        <!-- Unlocked State (Hidden by default) -->
+                        <div id="admin-unlocked-view" class="space-y-6 hidden">
+                            <div class="bg-emerald-50 border border-emerald-100 rounded-xl p-4 flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="p-2 bg-emerald-100 text-emerald-800 rounded-lg">
+                                        <i class="fa-solid fa-unlock text-lg"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="text-xs font-bold text-emerald-800 uppercase tracking-wider">Console d'administration active</h5>
+                                        <p class="text-[11px] text-emerald-600 mt-0.5">Accès administrateur total. Modification de tous les comptes et données autorisée.</p>
+                                    </div>
+                                </div>
+                                <button onclick="lockAdminPanel()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-2.5 py-1 rounded text-[10px] font-bold transition">
+                                    Verrouiller
+                                </button>
+                            </div>
 
-                        <div class="flex flex-col sm:flex-row gap-2">
-                            <button onclick="clearSamplingDatabase()" class="flex-1 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 py-2 px-3 rounded-lg text-xs font-bold transition text-center">
-                                <i class="fa-solid fa-trash mr-1.5"></i> Vider les prélèvements
-                            </button>
-                            <button onclick="factoryReset()" class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-3 rounded-lg text-xs font-bold transition text-center shadow">
-                                <i class="fa-solid fa-bomb mr-1.5"></i> Réinitialisation totale
-                            </button>
+                            <!-- Manage Chauffeurs / Accounts -->
+                            <div>
+                                <h5 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-users text-emerald-600"></i>
+                                    <span>Comptes Chauffeurs de la Plateforme</span>
+                                </h5>
+                                <div class="bg-slate-50 border border-slate-100 rounded-xl overflow-hidden mt-2">
+                                    <ul id="settings-accounts-list" class="divide-y divide-slate-200 text-xs text-slate-600">
+                                        <!-- Registered users injected here -->
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <!-- Database Maintenance / Reset -->
+                            <div class="border-t border-slate-100 pt-5">
+                                <h5 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 text-rose-500 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-triangle-exclamation"></i>
+                                    <span>Maintenance et Zone de Danger</span>
+                                </h5>
+                                <p class="text-xs text-slate-400 mb-3">Ces actions suppriment définitivement vos données de l'appareil local.</p>
+
+                                <div class="flex flex-col sm:flex-row gap-2">
+                                    <button onclick="clearSamplingDatabase()" class="flex-1 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 py-2 px-3 rounded-lg text-xs font-bold transition text-center">
+                                        <i class="fa-solid fa-trash mr-1.5"></i> Vider les prélèvements
+                                    </button>
+                                    <button onclick="factoryReset()" class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-3 rounded-lg text-xs font-bold transition text-center shadow">
+                                        <i class="fa-solid fa-bomb mr-1.5"></i> Réinitialisation totale
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -711,7 +825,7 @@
                 <!-- Footer -->
                 <div class="bg-slate-50 px-6 py-4 border-t border-slate-100 text-right">
                     <button onclick="toggleSettingsModal()" class="w-full sm:w-auto px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-bold transition">
-                        Enregistrer & Fermer
+                        Fermer
                     </button>
                 </div>
             </div>
@@ -743,6 +857,9 @@
                 producer: 'Ferme de Kerloët - GAEC Martin',
                 driver: 'Jean Dupont',
                 datetime: '2026-07-25T10:30',
+                status: 'En cours',
+                pickingCity: 'Loudéac',
+                pickingAddress: '12 Rue des Alouettes',
                 comment: 'Tubercules réguliers, bon calibrage. Absence de gale.'
             },
             {
@@ -754,6 +871,9 @@
                 producer: 'Exploitation Rannou S.A.',
                 driver: 'Pierre Moreau',
                 datetime: '2026-07-25T11:45',
+                status: 'Terminé',
+                pickingCity: 'Lamballe',
+                pickingAddress: 'Zone Industrielle de la Tourelle',
                 comment: 'Légère présence de terre adhérant aux tubercules.'
             }
         ];
@@ -773,6 +893,9 @@
                 localStorage.setItem('lg_accounts', JSON.stringify(DEFAULT_ACCOUNTS));
             }
             accounts = JSON.parse(localStorage.getItem('lg_accounts'));
+
+            // Ensure they always have some transfer states or default values if they are legacy accounts
+            // (e.g. usernames are unique identifiers)
 
             // Load Potato Varieties
             if (!localStorage.getItem('lg_varieties')) {
@@ -812,6 +935,11 @@
             // Set header values
             document.getElementById('header-driver-name').textContent = currentUser.fullname;
             document.getElementById('form-driver').value = currentUser.fullname;
+
+            // Load values to Settings Profile inputs
+            document.getElementById('profile-fullname').value = currentUser.fullname;
+            document.getElementById('profile-username').value = currentUser.username;
+            document.getElementById('profile-password').value = ""; // clear password placeholder
 
             // Sync lists and render data
             syncVarietyDropdowns();
@@ -987,11 +1115,24 @@
             document.getElementById('kpi-avg-weight').textContent = `${avgWeight.toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 2 })} kg`;
         }
 
+        function getMapUrl(city, address) {
+            const query = `${address || ''} ${city || ''}`.trim();
+            if (!query) return null;
+            return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+        }
+
+        function getWazeUrl(city, address) {
+            const query = `${address || ''} ${city || ''}`.trim();
+            if (!query) return null;
+            return `https://waze.com/ul?q=${encodeURIComponent(query)}&navigate=yes`;
+        }
+
         function renderOrdersTable() {
             const tbody = document.getElementById('orders-tbody');
             const emptyState = document.getElementById('empty-state');
             const searchQuery = document.getElementById('search-query').value.trim().toLowerCase();
             const varietyFilter = document.getElementById('filter-variety').value;
+            const statusFilter = document.getElementById('filter-status').value;
 
             // Filter data
             const filtered = samplingOrders.filter(order => {
@@ -999,12 +1140,17 @@
                     order.lotNumber.toLowerCase().includes(searchQuery) ||
                     order.producer.toLowerCase().includes(searchQuery) ||
                     order.variety.toLowerCase().includes(searchQuery) ||
+                    (order.pickingCity && order.pickingCity.toLowerCase().includes(searchQuery)) ||
                     (order.driver && order.driver.toLowerCase().includes(searchQuery))
                 );
 
                 const matchVariety = !varietyFilter || order.variety === varietyFilter;
 
-                return matchSearch && matchVariety;
+                // Fallback for older orders without a status (assume Terminé or En cours)
+                const currentStatus = order.status || 'En cours';
+                const matchStatus = !statusFilter || currentStatus === statusFilter;
+
+                return matchSearch && matchVariety && matchStatus;
             });
 
             // Sort by Date/Time descending
@@ -1024,15 +1170,31 @@
                 const formattedDate = dateObj.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' });
                 const formattedTime = dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 
+                const currentStatus = order.status || 'En cours';
+                const statusBadgeClass = currentStatus === 'En cours'
+                    ? 'bg-amber-100 text-amber-800 border-amber-200'
+                    : 'bg-emerald-100 text-emerald-800 border-emerald-200';
+
+                // Navigation URLs if address available
+                const hasNav = order.pickingCity || order.pickingAddress;
+                const gMapsLink = hasNav ? getMapUrl(order.pickingCity, order.pickingAddress) : null;
+                const wazeLink = hasNav ? getWazeUrl(order.pickingCity, order.pickingAddress) : null;
+
                 rowsHTML += `
                     <tr class="hover:bg-slate-50/70 transition duration-150">
                         <td class="px-4 py-3.5 whitespace-nowrap">
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold font-mono bg-emerald-100 text-emerald-800">
-                                LOT-${order.lotNumber}
-                            </span>
+                            <div class="space-y-1">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold font-mono bg-emerald-100 text-emerald-800">
+                                    LOT-${order.lotNumber}
+                                </span>
+                                <span class="block text-[9px] px-1.5 py-0.5 rounded border ${statusBadgeClass} text-center font-bold w-max">
+                                    ${currentStatus}
+                                </span>
+                            </div>
                         </td>
                         <td class="px-4 py-3.5">
                             <div class="text-sm font-semibold text-slate-800">${order.variety}</div>
+                            <div class="text-[10px] text-slate-400 font-medium">Par: ${order.driver || 'Chauffeur'}</div>
                         </td>
                         <td class="px-4 py-3.5 text-right font-mono text-sm font-semibold text-slate-700">
                             ${order.bacsCount}
@@ -1042,9 +1204,20 @@
                         </td>
                         <td class="px-4 py-3.5 whitespace-nowrap">
                             <div class="text-xs font-bold text-slate-700 truncate max-w-[140px]" title="${order.producer}">${order.producer}</div>
+                            ${order.pickingCity ? `<div class="text-[10px] font-semibold text-slate-500 flex items-center gap-1"><i class="fa-solid fa-map-pin text-rose-500"></i> ${order.pickingCity}</div>` : ''}
                             <div class="text-[10px] text-slate-400 mt-0.5">${formattedDate} &agrave; ${formattedTime}</div>
                         </td>
                         <td class="px-4 py-3.5 whitespace-nowrap text-right text-xs font-medium space-x-1">
+                            ${gMapsLink ? `
+                                <a href="${gMapsLink}" target="_blank" class="inline-flex items-center gap-1 bg-slate-100 hover:bg-blue-50 text-blue-600 p-1.5 rounded-lg transition" title="Itinéraire Google Maps">
+                                    <i class="fa-solid fa-map-location-dot"></i>
+                                </a>
+                            ` : ''}
+                            ${wazeLink ? `
+                                <a href="${wazeLink}" target="_blank" class="inline-flex items-center gap-1 bg-slate-100 hover:bg-amber-50 text-amber-600 p-1.5 rounded-lg transition" title="Itinéraire Waze">
+                                    <i class="fa-brands fa-waze"></i>
+                                </a>
+                            ` : ''}
                             <button onclick="openTicketModal('${order.id}')" class="inline-flex items-center gap-1 bg-slate-100 hover:bg-emerald-50 text-slate-600 hover:text-brand-darkgreen p-1.5 rounded-lg transition" title="Voir / Imprimer le ticket">
                                 <i class="fa-solid fa-receipt"></i>
                             </button>
@@ -1082,8 +1255,11 @@
             const bacsCount = parseInt(document.getElementById('form-bacs-count').value);
             const weight = parseFloat(document.getElementById('form-weight').value);
             const producer = document.getElementById('form-producer').value.trim();
+            const pickingCity = document.getElementById('form-picking-city').value.trim();
+            const pickingAddress = document.getElementById('form-picking-address').value.trim();
             const driver = document.getElementById('form-driver').value.trim();
             const datetime = document.getElementById('form-datetime').value;
+            const status = document.getElementById('form-status').value;
             const comment = document.getElementById('form-comment').value.trim();
 
             if (!variety) {
@@ -1096,7 +1272,7 @@
                 const index = samplingOrders.findIndex(o => o.id === orderIdField);
                 if (index !== -1) {
                     samplingOrders[index] = {
-                        id: orderIdField, lotNumber, variety, bacsCount, weight, producer, driver, datetime, comment
+                        id: orderIdField, lotNumber, variety, bacsCount, weight, producer, pickingCity, pickingAddress, driver, datetime, status, comment
                     };
                     showToast("L'échantillon a été mis à jour.", "success");
                 }
@@ -1104,7 +1280,7 @@
                 // CREATE MODE
                 const newOrder = {
                     id: 'order-' + Date.now(),
-                    lotNumber, variety, bacsCount, weight, producer, driver, datetime, comment
+                    lotNumber, variety, bacsCount, weight, producer, pickingCity, pickingAddress, driver, datetime, status, comment
                 };
                 samplingOrders.push(newOrder);
                 showToast("Nouvel échantillonnage enregistré avec succès !", "success");
@@ -1145,8 +1321,11 @@
             document.getElementById('form-bacs-count').value = order.bacsCount;
             document.getElementById('form-weight').value = order.weight;
             document.getElementById('form-producer').value = order.producer;
+            document.getElementById('form-picking-city').value = order.pickingCity || "";
+            document.getElementById('form-picking-address').value = order.pickingAddress || "";
             document.getElementById('form-driver').value = order.driver;
             document.getElementById('form-datetime').value = order.datetime;
+            document.getElementById('form-status').value = order.status || "En cours";
             document.getElementById('form-comment').value = order.comment;
 
             calculateInstantAverage();
@@ -1175,6 +1354,9 @@
             document.getElementById('form-mode-badge').className = "text-xs bg-emerald-900/60 text-emerald-200 px-2 py-1 rounded font-mono";
             document.getElementById('form-order-id').value = "";
             document.getElementById('sampling-form').reset();
+
+            // Set default status to "En cours"
+            document.getElementById('form-status').value = "En cours";
 
             // Setup datetime default to local timezone correct format
             const now = new Date();
@@ -1205,6 +1387,12 @@
             document.getElementById('ticket-lot-number').textContent = `LOT-${order.lotNumber.toUpperCase()}`;
             document.getElementById('ticket-variety').textContent = order.variety.toUpperCase();
             document.getElementById('ticket-producer').textContent = order.producer.toUpperCase();
+
+            const cityStr = order.pickingCity || "";
+            const addrStr = order.pickingAddress || "";
+            const locationText = [addrStr, cityStr].filter(Boolean).join(", ");
+            document.getElementById('ticket-location').textContent = (locationText || "--").toUpperCase();
+
             document.getElementById('ticket-bacs').textContent = `${order.bacsCount} Bacs`;
             document.getElementById('ticket-weight').textContent = `${parseFloat(order.weight).toFixed(2)} kg`;
             document.getElementById('ticket-avg-weight').textContent = `${avgWeight.toFixed(2)} kg`;
@@ -1227,7 +1415,7 @@
                 return;
             }
 
-            const headers = ["Identifiant", "Numero de Lot", "Variete", "Nombre de bacs", "Poids total (kg)", "Poids moyen par bac (kg)", "Producteur", "Chauffeur", "Date heure prélèvement", "Observations"];
+            const headers = ["Identifiant", "Numero de Lot", "Variete", "Nombre de bacs", "Poids total (kg)", "Poids moyen par bac (kg)", "Producteur", "Ville de picking", "Adresse précise", "Chauffeur", "Date heure prélèvement", "Statut", "Observations"];
 
             let csvRows = [headers.join(';')];
 
@@ -1241,8 +1429,11 @@
                     o.weight.toString().replace('.', ','), // decimal separator for French excel
                     avg.toFixed(2).replace('.', ','),
                     o.producer,
+                    o.pickingCity || "",
+                    o.pickingAddress || "",
                     o.driver,
                     o.datetime.replace('T', ' '),
+                    o.status || "En cours",
                     o.comment || ""
                 ];
 
@@ -1349,6 +1540,8 @@
         function toggleSettingsModal() {
             const modal = document.getElementById('settings-modal');
             if (modal.classList.contains('hidden')) {
+                // Default to profile tab
+                switchSettingsTab('profile');
                 renderSettingsContent();
                 modal.classList.remove('hidden');
             } else {
@@ -1356,8 +1549,105 @@
             }
         }
 
+        function switchSettingsTab(tabName) {
+            // Hide all panels
+            document.getElementById('settings-panel-profile').classList.add('hidden');
+            document.getElementById('settings-panel-varieties').classList.add('hidden');
+            document.getElementById('settings-panel-admin').classList.add('hidden');
+
+            // Reset tab styles
+            const tabProfile = document.getElementById('settings-tab-profile');
+            const tabVarieties = document.getElementById('settings-tab-varieties');
+            const tabAdmin = document.getElementById('settings-tab-admin');
+
+            tabProfile.className = "flex-1 py-3 text-center text-xs font-bold uppercase tracking-wider border-b-2 border-transparent text-slate-500 hover:text-slate-800";
+            tabVarieties.className = "flex-1 py-3 text-center text-xs font-bold uppercase tracking-wider border-b-2 border-transparent text-slate-500 hover:text-slate-800";
+            tabAdmin.className = "flex-1 py-3 text-center text-xs font-bold uppercase tracking-wider border-b-2 border-transparent text-slate-500 hover:text-slate-800";
+
+            if (tabName === 'profile') {
+                document.getElementById('settings-panel-profile').classList.remove('hidden');
+                tabProfile.className = "flex-1 py-3 text-center text-xs font-bold uppercase tracking-wider border-b-2 border-emerald-600 text-emerald-700";
+            } else if (tabName === 'varieties') {
+                document.getElementById('settings-panel-varieties').classList.remove('hidden');
+                tabVarieties.className = "flex-1 py-3 text-center text-xs font-bold uppercase tracking-wider border-b-2 border-emerald-600 text-emerald-700";
+            } else if (tabName === 'admin') {
+                document.getElementById('settings-panel-admin').classList.remove('hidden');
+                tabAdmin.className = "flex-1 py-3 text-center text-xs font-bold uppercase tracking-wider border-b-2 border-emerald-600 text-emerald-700";
+            }
+        }
+
+        function handleProfileUpdate(event) {
+            event.preventDefault();
+            const fullname = document.getElementById('profile-fullname').value.trim();
+            const username = document.getElementById('profile-username').value.trim().toLowerCase();
+            const password = document.getElementById('profile-password').value;
+
+            // Check if username already exists on ANOTHER account
+            const existingUser = accounts.find(acc => acc.username.toLowerCase() === username && acc.username.toLowerCase() !== currentUser.username.toLowerCase());
+            if (existingUser) {
+                showToast("Cet identifiant est déjà pris par un autre chauffeur.", "error");
+                return;
+            }
+
+            // Update current user account
+            const accountIndex = accounts.findIndex(acc => acc.username.toLowerCase() === currentUser.username.toLowerCase());
+            if (accountIndex !== -1) {
+                accounts[accountIndex].fullname = fullname;
+                accounts[accountIndex].username = username;
+                if (password) {
+                    accounts[accountIndex].password = password;
+                }
+
+                // Update active currentUser
+                currentUser = { ...accounts[accountIndex] };
+
+                // Save accounts and active session
+                localStorage.setItem('lg_accounts', JSON.stringify(accounts));
+
+                // Update remember me storage if applicable
+                if (localStorage.getItem('lg_current_user')) {
+                    localStorage.setItem('lg_current_user', JSON.stringify(currentUser));
+                } else {
+                    sessionStorage.setItem('lg_current_user', JSON.stringify(currentUser));
+                }
+
+                // Update DOM Header
+                document.getElementById('header-driver-name').textContent = currentUser.fullname;
+                document.getElementById('form-driver').value = currentUser.fullname;
+
+                showToast("Profil chauffeur mis à jour avec succès !", "success");
+                renderSettingsContent();
+            } else {
+                showToast("Erreur lors de la modification du profil.", "error");
+            }
+        }
+
+        let isAdminUnlocked = false;
+
+        function unlockAdminPanel() {
+            const pinVal = document.getElementById('admin-pin-input').value;
+            if (pinVal === '0342') {
+                isAdminUnlocked = true;
+                document.getElementById('admin-locked-view').classList.add('hidden');
+                document.getElementById('admin-unlocked-view').classList.remove('hidden');
+                document.getElementById('admin-pin-input').value = "";
+                showToast("Administration déverrouillée avec succès.", "success");
+                renderSettingsContent();
+            } else {
+                showToast("Code PIN erroné. Veuillez réessayer.", "error");
+            }
+        }
+
+        function lockAdminPanel() {
+            isAdminUnlocked = false;
+            document.getElementById('admin-locked-view').classList.remove('hidden');
+            document.getElementById('admin-unlocked-view').classList.add('hidden');
+            document.getElementById('admin-pin-input').value = "";
+            showToast("Console d'administration verrouillée.", "info");
+        }
+
         function renderSettingsContent() {
-            // Render Varieties badgess
+            // Render Varieties badges
             const container = document.getElementById('settings-varieties-list');
             let badgesHTML = "";
             varieties.forEach(v => {
@@ -1372,29 +1662,54 @@
             });
             container.innerHTML = badgesHTML;
 
-            // Render Driver Accounts
+            // Render Driver Accounts inside Admin Panel
             const accountsList = document.getElementById('settings-accounts-list');
             let accountsHTML = "";
             accounts.forEach(acc => {
                 const isCurrentUser = currentUser && acc.username === currentUser.username;
                 accountsHTML += `
-                    <li class="flex justify-between items-center px-4 py-3 bg-white">
-                        <div>
-                            <span class="font-bold text-slate-800">${acc.fullname}</span>
-                            <span class="text-slate-400 ml-1.5 text-[10px] font-mono bg-slate-100 px-1.5 py-0.5 rounded">@${acc.username}</span>
-                            ${isCurrentUser ? '<span class="ml-1.5 text-[9px] bg-emerald-100 text-emerald-800 px-1 py-0.5 rounded-full font-bold">Actuel</span>' : ''}
+                    <li class="px-4 py-3 bg-white space-y-2">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <span class="font-bold text-slate-800">${acc.fullname}</span>
+                                <span class="text-slate-400 ml-1.5 text-[10px] font-mono bg-slate-100 px-1.5 py-0.5 rounded">@${acc.username}</span>
+                                ${isCurrentUser ? '<span class="ml-1.5 text-[9px] bg-emerald-100 text-emerald-800 px-1 py-0.5 rounded-full font-bold">Actuel</span>' : ''}
+                            </div>
+                            <div>
+                                ${isCurrentUser ? '' : `
+                                    <button onclick="deleteAccount('${acc.username}')" class="text-rose-500 hover:text-rose-700 transition font-bold" title="Supprimer ce chauffeur">
+                                        <i class="fa-solid fa-trash-can text-sm"></i>
+                                    </button>
+                                `}
+                            </div>
                         </div>
-                        <div>
-                            ${isCurrentUser ? '' : `
-                                <button onclick="deleteAccount('${acc.username}')" class="text-rose-500 hover:text-rose-700 transition font-bold" title="Supprimer ce chauffeur">
-                                    <i class="fa-solid fa-trash-can text-sm"></i>
-                                </button>
-                            `}
+                        <div class="flex gap-2 items-center">
+                            <input type="text" id="admin-pass-${acc.username}" placeholder="Nouveau m.d.p." class="flex-1 px-2 py-1 text-[11px] border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                            <button onclick="adminChangePassword('${acc.username}')" class="bg-slate-200 hover:bg-emerald-600 hover:text-white px-2 py-1 text-[10px] font-bold rounded transition">
+                                Modifier le MDP
+                            </button>
                         </div>
                     </li>
                 `;
             });
             accountsList.innerHTML = accountsHTML;
+        }
+
+        function adminChangePassword(username) {
+            const inputId = `admin-pass-${username}`;
+            const newPassword = document.getElementById(inputId).value.trim();
+            if (!newPassword) {
+                showToast("Veuillez saisir un nouveau mot de passe.", "warning");
+                return;
+            }
+
+            const accIndex = accounts.findIndex(acc => acc.username.toLowerCase() === username.toLowerCase());
+            if (accIndex !== -1) {
+                accounts[accIndex].password = newPassword;
+                localStorage.setItem('lg_accounts', JSON.stringify(accounts));
+                document.getElementById(inputId).value = "";
+                showToast(`Mot de passe mis à jour pour @${username}.`, "success");
+            }
         }
 
         function addCustomVariety() {

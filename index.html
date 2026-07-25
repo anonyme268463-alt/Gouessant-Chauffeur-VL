@@ -1,0 +1,1539 @@
+<!DOCTYPE html>
+<html lang="fr" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Le Gouessant - Échantillonnage Chauffeur VL</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            darkgreen: '#008C3F',
+                            lightgreen: '#8CC63F',
+                            yellow: '#FFCC00',
+                            charcoal: '#1C1C1B'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome for gorgeous icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        /* Custom print styling */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #printArea, #printArea * {
+                visibility: visible;
+            }
+            #printArea {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                background: white;
+                color: black;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col text-slate-800">
+
+    <!-- Toast Notifications Container -->
+    <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-md w-full pointer-events-none"></div>
+
+    <!-- VIEW 1: LOGIN / REGISTER CONTAINER -->
+    <div id="auth-view" class="min-h-full flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-gradient-to-br from-emerald-800 via-emerald-950 to-slate-950">
+        <div class="sm:mx-auto sm:w-full sm:max-w-md text-center">
+            <!-- Logo with fallback to elegant SVG if image fails -->
+            <div class="inline-flex justify-center items-center mb-6 bg-white p-4 rounded-2xl shadow-xl border border-emerald-500/10">
+                <img src="./logo.png" alt="Le Gouessant" class="h-16 w-auto object-contain" onerror="this.onerror=null; this.outerHTML='<div class=\'text-3xl font-extrabold text-brand-darkgreen flex items-center gap-2\'><i class=\'fa-solid fa-leaf text-brand-lightgreen\'></i><span>Le Gouessant</span></div>'">
+            </div>
+            <h2 class="text-3xl font-extrabold text-white tracking-tight">Suivi Échantillonnage VL</h2>
+            <p class="mt-2 text-sm text-emerald-300">
+                Coopérative par nature — Pommes de terre
+            </p>
+        </div>
+
+        <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md px-4 sm:px-0">
+            <!-- Tabs for Login / Register -->
+            <div class="flex rounded-t-xl bg-emerald-900/40 p-1 mb-[-1px] backdrop-blur-md border border-emerald-700/30 border-b-0">
+                <button id="tab-login" onclick="switchAuthTab('login')" class="flex-1 py-2.5 text-sm font-semibold rounded-lg text-white bg-emerald-600 shadow-md transition duration-200">
+                    <i class="fa-solid fa-sign-in-alt mr-2"></i>Se connecter
+                </button>
+                <button id="tab-register" onclick="switchAuthTab('register')" class="flex-1 py-2.5 text-sm font-medium rounded-lg text-emerald-300 hover:text-white transition duration-200">
+                    <i class="fa-solid fa-user-plus mr-2"></i>Créer un compte
+                </button>
+            </div>
+
+            <div class="bg-white py-8 px-4 shadow-2xl rounded-b-xl sm:px-10 border border-emerald-500/10 backdrop-blur-lg">
+                <!-- LOGIN FORM -->
+                <form id="login-form" onsubmit="handleLogin(event)" class="space-y-6">
+                    <div>
+                        <label for="login-username" class="block text-sm font-semibold text-slate-700">Identifiant</label>
+                        <div class="mt-1 relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fa-solid fa-user text-slate-400"></i>
+                            </div>
+                            <input id="login-username" name="username" type="text" required autocomplete="username"
+                                class="block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm placeholder-slate-400 transition"
+                                placeholder="chauffeur1 ou votre identifiant">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="login-password" class="block text-sm font-semibold text-slate-700">Mot de passe</label>
+                        <div class="mt-1 relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fa-solid fa-lock text-slate-400"></i>
+                            </div>
+                            <input id="login-password" name="password" type="password" required autocomplete="current-password"
+                                class="block w-full pl-10 pr-10 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm placeholder-slate-400 transition"
+                                placeholder="••••••••">
+                            <button type="button" onclick="togglePasswordVisibility('login-password')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600">
+                                <i class="fa-regular fa-eye" id="eye-icon-login-password"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <input id="remember-me" name="remember-me" type="checkbox" class="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded transition cursor-pointer">
+                            <label for="remember-me" class="ml-2 block text-sm text-slate-600 cursor-pointer select-none">Se souvenir de moi</label>
+                        </div>
+                    </div>
+
+                    <div>
+                        <button type="submit" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-md text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition duration-150 transform active:scale-[0.98]">
+                            Se connecter
+                        </button>
+                    </div>
+                </form>
+
+                <!-- REGISTER FORM (Hidden by default) -->
+                <form id="register-form" onsubmit="handleRegister(event)" class="space-y-6 hidden">
+                    <div>
+                        <label for="register-fullname" class="block text-sm font-semibold text-slate-700">Nom Complet Chauffeur</label>
+                        <div class="mt-1 relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fa-solid fa-address-card text-slate-400"></i>
+                            </div>
+                            <input id="register-fullname" name="fullname" type="text" required
+                                class="block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm placeholder-slate-400 transition"
+                                placeholder="Jean Dupont">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="register-username" class="block text-sm font-semibold text-slate-700">Identifiant de connexion</label>
+                        <div class="mt-1 relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fa-solid fa-user text-slate-400"></i>
+                            </div>
+                            <input id="register-username" name="username" type="text" required autocomplete="username"
+                                class="block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm placeholder-slate-400 transition"
+                                placeholder="jdupont">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="register-password" class="block text-sm font-semibold text-slate-700">Mot de passe</label>
+                        <div class="mt-1 relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fa-solid fa-lock text-slate-400"></i>
+                            </div>
+                            <input id="register-password" name="password" type="password" required autocomplete="new-password"
+                                class="block w-full pl-10 pr-10 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm placeholder-slate-400 transition"
+                                placeholder="••••••••">
+                            <button type="button" onclick="togglePasswordVisibility('register-password')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600">
+                                <i class="fa-regular fa-eye" id="eye-icon-register-password"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <button type="submit" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-md text-sm font-bold text-white bg-brand-lightgreen hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition duration-150 transform active:scale-[0.98]">
+                            Créer mon compte chauffeur
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Help details & Default accounts -->
+                <div class="mt-8 pt-6 border-t border-slate-100">
+                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Identifiants de test configurés :</h4>
+                    <div class="bg-emerald-50/70 border border-emerald-100 rounded-xl p-3 text-xs space-y-1.5 text-emerald-800">
+                        <div class="flex justify-between">
+                            <span><i class="fa-solid fa-user-circle mr-1"></i> Chauffeur 1 :</span>
+                            <span class="font-mono bg-white px-1.5 py-0.5 rounded shadow-sm border border-emerald-200">chauffeur1 / password123</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span><i class="fa-solid fa-truck-pickup mr-1"></i> Chauffeur 2 :</span>
+                            <span class="font-mono bg-white px-1.5 py-0.5 rounded shadow-sm border border-emerald-200">driver / legouessant</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- VIEW 2: MAIN DASHBOARD VIEW (Hidden by default) -->
+    <div id="dashboard-view" class="hidden min-h-full flex flex-col bg-slate-50">
+        <!-- Main Navigation Header -->
+        <header class="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-40 no-print">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16 items-center">
+                    <div class="flex items-center gap-3">
+                        <img src="./logo.png" alt="Le Gouessant" class="h-10 w-auto object-contain" onerror="this.onerror=null; this.outerHTML='<div class=\'text-xl font-black text-brand-darkgreen flex items-center gap-1.5\'><i class=\'fa-solid fa-leaf text-brand-lightgreen\'></i><span>Le Gouessant</span></div>'">
+                        <div class="hidden md:block h-6 w-px bg-slate-200"></div>
+                        <span class="hidden md:inline-block text-xs font-semibold text-slate-500 uppercase tracking-wider">Qualité & Échantillonnage</span>
+                    </div>
+
+                    <div class="flex items-center gap-4">
+                        <!-- Driver welcome badge -->
+                        <div class="flex items-center gap-2 bg-emerald-50 border border-emerald-100 px-3 py-1.5 rounded-full">
+                            <div class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                            <span class="text-xs font-bold text-emerald-800" id="header-driver-name">Chauffeur</span>
+                        </div>
+
+                        <!-- Real-time clock -->
+                        <div id="live-clock" class="hidden sm:block text-xs font-medium text-slate-400 font-mono">
+                            --:--:--
+                        </div>
+
+                        <!-- Settings Toggle Button -->
+                        <button onclick="toggleSettingsModal()" class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition" title="Paramètres">
+                            <i class="fa-solid fa-cog text-lg"></i>
+                        </button>
+
+                        <!-- Logout Button -->
+                        <button onclick="handleLogout()" class="inline-flex items-center gap-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-700 px-3 py-1.5 rounded-lg text-xs font-bold transition">
+                            <i class="fa-solid fa-sign-out-alt"></i>
+                            <span class="hidden sm:inline">Déconnexion</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Workspace Grid -->
+        <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+
+            <!-- KPI Summary Dashboard -->
+            <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 no-print">
+                <!-- Card 1: Total Lots -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4 hover:shadow-md transition">
+                    <div class="p-3.5 bg-emerald-50 text-brand-darkgreen rounded-xl">
+                        <i class="fa-solid fa-boxes-stacked text-2xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Lots Échantillonnés</p>
+                        <h3 class="text-2xl font-extrabold text-slate-800 mt-1" id="kpi-total-lots">0</h3>
+                    </div>
+                </div>
+
+                <!-- Card 2: Total Bacs -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4 hover:shadow-md transition">
+                    <div class="p-3.5 bg-lime-50 text-brand-lightgreen rounded-xl">
+                        <i class="fa-solid fa-box text-2xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Nombre Total Bacs</p>
+                        <h3 class="text-2xl font-extrabold text-slate-800 mt-1" id="kpi-total-bacs">0</h3>
+                    </div>
+                </div>
+
+                <!-- Card 3: Total Weight -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4 hover:shadow-md transition">
+                    <div class="p-3.5 bg-amber-50 text-amber-600 rounded-xl">
+                        <i class="fa-solid fa-weight-hanging text-2xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Poids Total Collecté</p>
+                        <h3 class="text-2xl font-extrabold text-slate-800 mt-1" id="kpi-total-weight">0 kg</h3>
+                    </div>
+                </div>
+
+                <!-- Card 4: Avg Weight per Crate -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4 hover:shadow-md transition">
+                    <div class="p-3.5 bg-indigo-50 text-indigo-600 rounded-xl">
+                        <i class="fa-solid fa-calculator text-2xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Poids Moyen / Bac</p>
+                        <h3 class="text-2xl font-extrabold text-slate-800 mt-1" id="kpi-avg-weight">0 kg</h3>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Main Layout: Saisie Form on Left, History List on Right -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+                <!-- Left Side: Sampling Saisie Form -->
+                <div class="lg:col-span-5 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden sticky lg:top-24 no-print">
+                    <div class="p-5 border-b border-slate-100 bg-gradient-to-r from-emerald-800 to-emerald-700 text-white">
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center gap-2">
+                                <i class="fa-solid fa-square-plus text-xl text-brand-yellow"></i>
+                                <h2 class="text-lg font-bold" id="form-title">Créer un échantillon</h2>
+                            </div>
+                            <span class="text-xs bg-emerald-900/60 text-emerald-200 px-2 py-1 rounded font-mono" id="form-mode-badge">Nouveau</span>
+                        </div>
+                        <p class="text-xs text-emerald-100/80 mt-1">Saisie d'un prélèvement de pommes de terre</p>
+                    </div>
+
+                    <form id="sampling-form" onsubmit="handleFormSubmit(event)" class="p-6 space-y-4">
+                        <!-- Hidden ID field for edit mode -->
+                        <input type="hidden" id="form-order-id" value="">
+
+                        <!-- Row 1: Lot Number -->
+                        <div>
+                            <label for="form-lot-number" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Numéro de Lot <span class="text-rose-500">*</span></label>
+                            <div class="mt-1 relative rounded-lg shadow-sm">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span class="text-slate-400 text-xs font-bold font-mono">LOT-</span>
+                                </div>
+                                <input type="text" id="form-lot-number" required
+                                    class="block w-full pl-12 pr-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm font-mono uppercase"
+                                    placeholder="2026-A10">
+                            </div>
+                            <p class="mt-1 text-[10px] text-slate-400">Exemple : 2026-A10 ou 45B98</p>
+                        </div>
+
+                        <!-- Row 2: Variety selection with dynamic "Other" field -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label for="form-variety" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Variété <span class="text-rose-500">*</span></label>
+                                <select id="form-variety" required onchange="handleVarietyChange(this.value)"
+                                    class="mt-1 block w-full py-2.5 px-3 border border-slate-300 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
+                                    <!-- Dynamic options injected via JS -->
+                                </select>
+                            </div>
+
+                            <div id="custom-variety-container" class="hidden">
+                                <label for="form-variety-custom" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Préciser variété <span class="text-rose-500">*</span></label>
+                                <input type="text" id="form-variety-custom"
+                                    class="mt-1 block w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                                    placeholder="Nom de variété">
+                            </div>
+                        </div>
+
+                        <!-- Row 3: Bacs & Weight -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="form-bacs-count" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Nombre de bacs <span class="text-rose-500">*</span></label>
+                                <div class="mt-1 relative rounded-lg shadow-sm">
+                                    <input type="number" id="form-bacs-count" required min="1" step="1" oninput="calculateInstantAverage()"
+                                        class="block w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm font-semibold"
+                                        placeholder="1">
+                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                        <span class="text-slate-400 text-xs font-medium">Bacs</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label for="form-weight" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Poids total (kg) <span class="text-rose-500">*</span></label>
+                                <div class="mt-1 relative rounded-lg shadow-sm">
+                                    <input type="number" id="form-weight" required min="0.1" step="0.01" oninput="calculateInstantAverage()"
+                                        class="block w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm font-semibold"
+                                        placeholder="25.5">
+                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                        <span class="text-slate-400 text-xs font-medium">kg</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Instant average info display -->
+                        <div id="instant-avg-display" class="hidden text-right text-xs font-semibold text-slate-500 font-mono bg-slate-50 py-1.5 px-3 rounded-lg border border-slate-100">
+                            Poids moyen estimé par bac : <span class="text-emerald-700" id="instant-avg-val">0.00</span> kg
+                        </div>
+
+                        <!-- Row 4: Producer -->
+                        <div>
+                            <label for="form-producer" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Exploitant / Producteur <span class="text-rose-500">*</span></label>
+                            <input type="text" id="form-producer" required
+                                class="mt-1 block w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm placeholder-slate-400"
+                                placeholder="GAEC de la lande, Ferme Martin...">
+                        </div>
+
+                        <!-- Row 5: Driver & Date/Time -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label for="form-driver" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Nom Chauffeur <span class="text-rose-500">*</span></label>
+                                <input type="text" id="form-driver" required
+                                    class="mt-1 block w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm bg-slate-50 text-slate-500 font-medium"
+                                    placeholder="Chauffeur" readonly>
+                            </div>
+
+                            <div>
+                                <label for="form-datetime" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Date & Heure <span class="text-rose-500">*</span></label>
+                                <input type="datetime-local" id="form-datetime" required
+                                    class="mt-1 block w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm font-medium">
+                            </div>
+                        </div>
+
+                        <!-- Row 6: Comments -->
+                        <div>
+                            <label for="form-comment" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Observations / Commentaires</label>
+                            <textarea id="form-comment" rows="2"
+                                class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm placeholder-slate-400"
+                                placeholder="État sanitaire des pommes de terre, calibrage, présence de terre..."></textarea>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="pt-2 flex gap-3">
+                            <button type="button" onclick="resetForm()" id="form-btn-cancel"
+                                class="flex-1 py-2.5 px-4 border border-slate-200 rounded-lg text-sm font-semibold text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition">
+                                Annuler
+                            </button>
+                            <button type="submit" id="form-btn-submit"
+                                class="flex-1 py-2.5 px-4 rounded-lg text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-md transition transform active:scale-95">
+                                <i class="fa-solid fa-save mr-2"></i>Enregistrer
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Right Side: History List Table -->
+                <div class="lg:col-span-7 space-y-4">
+
+                    <!-- Search, Filters and Export Header Card -->
+                    <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4 no-print">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div>
+                                <h2 class="text-lg font-bold text-slate-800">Historique des Prélèvements</h2>
+                                <p class="text-xs text-slate-400">Consultez, filtrez et exportez vos données d'échantillons</p>
+                            </div>
+                            <!-- Bulk Export Buttons -->
+                            <div class="flex flex-wrap items-center gap-2">
+                                <button onclick="exportCSV()" class="inline-flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-brand-darkgreen px-3 py-2 rounded-lg text-xs font-bold transition border border-emerald-100" title="Télécharger sous format Excel (CSV)">
+                                    <i class="fa-solid fa-file-csv"></i>
+                                    <span>CSV (Excel)</span>
+                                </button>
+                                <button onclick="exportJSON()" class="inline-flex items-center gap-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 px-3 py-2 rounded-lg text-xs font-bold transition border border-blue-100" title="Exporter au format de sauvegarde JSON">
+                                    <i class="fa-solid fa-file-code"></i>
+                                    <span>JSON Backup</span>
+                                </button>
+                                <button onclick="triggerJSONImport()" class="inline-flex items-center gap-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-xs font-bold transition border border-slate-200" title="Restaurer ou charger un fichier JSON">
+                                    <i class="fa-solid fa-upload"></i>
+                                    <span>Importer</span>
+                                </button>
+                                <input type="file" id="import-file-input" class="hidden" accept=".json" onchange="importJSON(event)">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 pt-2">
+                            <!-- Search query bar -->
+                            <div class="sm:col-span-7 relative">
+                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                                    <i class="fa-solid fa-magnifying-glass text-sm"></i>
+                                </span>
+                                <input type="text" id="search-query" oninput="renderOrdersTable()"
+                                    class="block w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm placeholder-slate-400"
+                                    placeholder="Rechercher par lot, exploitant, chauffeur...">
+                            </div>
+
+                            <!-- Variety filter -->
+                            <div class="sm:col-span-5">
+                                <select id="filter-variety" onchange="renderOrdersTable()"
+                                    class="block w-full py-2 px-3 border border-slate-300 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
+                                    <option value="">Toutes les variétés</option>
+                                    <!-- Options injected via JS -->
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Table Data Card -->
+                    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden no-print">
+                        <div class="overflow-x-auto min-w-full">
+                            <table class="min-w-full divide-y divide-slate-100">
+                                <thead class="bg-slate-50">
+                                    <tr>
+                                        <th scope="col" class="px-4 py-3.5 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Lot</th>
+                                        <th scope="col" class="px-4 py-3.5 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Variété</th>
+                                        <th scope="col" class="px-4 py-3.5 text-right text-xs font-bold text-slate-400 uppercase tracking-wider">Bacs</th>
+                                        <th scope="col" class="px-4 py-3.5 text-right text-xs font-bold text-slate-400 uppercase tracking-wider">Poids</th>
+                                        <th scope="col" class="px-4 py-3.5 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Exploitant / Date</th>
+                                        <th scope="col" class="relative px-4 py-3.5">
+                                            <span class="sr-only">Actions</span>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody id="orders-tbody" class="divide-y divide-slate-100 bg-white">
+                                    <!-- Rows dynamically injected via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Empty State display -->
+                        <div id="empty-state" class="hidden p-12 text-center">
+                            <div class="inline-flex p-4 bg-slate-50 text-slate-400 rounded-full mb-4">
+                                <i class="fa-solid fa-boxes-packing text-4xl"></i>
+                            </div>
+                            <h3 class="text-base font-bold text-slate-700">Aucun échantillonnage enregistré</h3>
+                            <p class="text-sm text-slate-400 mt-1 max-w-sm mx-auto">Saisissez votre premier prélèvement à gauche ou importez une sauvegarde.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+
+    <!-- MODAL 1: TICKET PRINT MODAL -->
+    <div id="ticket-modal" class="fixed inset-0 z-50 overflow-y-auto hidden no-print" role="dialog" aria-modal="true">
+        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <!-- Modal background overlay -->
+            <div class="fixed inset-0 bg-slate-900 bg-opacity-70 transition-opacity" onclick="closeTicketModal()"></div>
+
+            <!-- This element is to trick the browser into centering the modal contents. -->
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+            <!-- Modal Content Card -->
+            <div class="inline-block align-middle bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
+                <!-- Header panel with print action -->
+                <div class="bg-slate-50 px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                    <h3 class="text-sm font-bold text-slate-700 uppercase tracking-wider">Aperçu du Ticket</h3>
+                    <div class="flex items-center gap-2">
+                        <button onclick="window.print()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                            <i class="fa-solid fa-print"></i>
+                            <span>Imprimer</span>
+                        </button>
+                        <button onclick="closeTicketModal()" class="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-200 transition">
+                            <i class="fa-solid fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Receipt Ticket area inside Modal (will be extracted for window.print()) -->
+                <div class="p-6 bg-white flex justify-center">
+                    <!-- Ticket Element with class print-target -->
+                    <div id="printArea" class="w-full max-w-sm border-2 border-slate-200 border-dashed rounded-xl p-5 bg-stone-50 font-sans shadow-sm" style="font-family: monospace;">
+                        <div class="text-center pb-4 border-b-2 border-dashed border-stone-300">
+                            <!-- Printable header -->
+                            <div class="text-md font-bold text-stone-900 uppercase tracking-widest flex justify-center items-center gap-1.5 mb-1">
+                                <i class="fa-solid fa-leaf text-emerald-700"></i> LE GOUESSANT
+                            </div>
+                            <div class="text-[9px] text-stone-500 uppercase tracking-wider">Coopérative agricole par nature</div>
+                            <div class="text-[8px] text-stone-400">Qualité - Suivi Échantillonnage</div>
+                        </div>
+
+                        <div class="py-4 border-b border-stone-200 space-y-1.5 text-xs text-stone-800">
+                            <div class="flex justify-between">
+                                <span class="font-bold">LOT N° :</span>
+                                <span class="font-bold text-stone-950 font-mono text-sm" id="ticket-lot-number">LOT-XXX</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>VARIÉTÉ :</span>
+                                <span class="font-bold text-stone-900" id="ticket-variety">--</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>EXPLOITANT :</span>
+                                <span class="font-bold text-stone-900" id="ticket-producer">--</span>
+                            </div>
+                        </div>
+
+                        <div class="py-4 border-b border-stone-200 space-y-2 text-xs">
+                            <div class="flex justify-between text-sm">
+                                <span class="font-bold text-stone-700">NOMBRE DE BACS :</span>
+                                <span class="font-extrabold text-stone-950 font-mono text-right" id="ticket-bacs">0 Bacs</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="font-bold text-stone-700">POIDS TOTAL :</span>
+                                <span class="font-extrabold text-stone-950 font-mono text-right" id="ticket-weight">0.00 kg</span>
+                            </div>
+                            <div class="flex justify-between text-[11px] bg-stone-200/50 p-1.5 rounded text-stone-600">
+                                <span>POIDS MOYEN / BAC :</span>
+                                <span class="font-bold text-stone-900 font-mono" id="ticket-avg-weight">0.00 kg</span>
+                            </div>
+                        </div>
+
+                        <div class="pt-4 space-y-2 text-[10px] text-stone-500">
+                            <div class="flex justify-between">
+                                <span>CHAUFFEUR VL :</span>
+                                <span class="font-bold uppercase text-stone-800" id="ticket-driver">--</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>PRÉLÈVEMENT LE :</span>
+                                <span class="font-bold text-stone-800" id="ticket-date">--</span>
+                            </div>
+
+                            <!-- Comments/Observations field inside ticket -->
+                            <div class="mt-3 pt-2 border-t border-dashed border-stone-200">
+                                <span class="block font-bold text-[9px] text-stone-600 uppercase mb-0.5">OBSERVATIONS :</span>
+                                <p class="italic text-stone-600 text-[9px] leading-relaxed whitespace-pre-wrap font-sans" id="ticket-comments">Aucune observation.</p>
+                            </div>
+                        </div>
+
+                        <!-- Barcode placeholder aesthetic -->
+                        <div class="mt-6 pt-4 border-t-2 border-dashed border-stone-300 flex flex-col items-center">
+                            <div class="w-full h-8 flex items-center justify-center gap-1 bg-stone-100 py-1.5 px-3 rounded">
+                                <div class="w-1 bg-stone-900 h-6"></div>
+                                <div class="w-0.5 bg-stone-900 h-6"></div>
+                                <div class="w-1.5 bg-stone-900 h-6"></div>
+                                <div class="w-1 bg-stone-900 h-6"></div>
+                                <div class="w-0.5 bg-stone-900 h-6"></div>
+                                <div class="w-2 bg-stone-900 h-6"></div>
+                                <div class="w-1 bg-stone-900 h-6"></div>
+                                <div class="w-0.5 bg-stone-900 h-6"></div>
+                                <div class="w-1.5 bg-stone-900 h-6"></div>
+                                <div class="w-0.5 bg-stone-900 h-6"></div>
+                                <div class="w-1 bg-stone-900 h-6"></div>
+                            </div>
+                            <span class="text-[8px] text-stone-400 font-mono mt-1 uppercase" id="ticket-barcode-num">*LGB-LOT-XXX*</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer close -->
+                <div class="bg-slate-50 px-6 py-4 border-t border-slate-100 text-right">
+                    <button onclick="closeTicketModal()" class="w-full sm:w-auto px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-sm font-semibold transition">
+                        Fermer l'aperçu
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- MODAL 2: CONFIGURATION & SETTINGS MODAL -->
+    <div id="settings-modal" class="fixed inset-0 z-50 overflow-y-auto hidden no-print" role="dialog" aria-modal="true">
+        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <!-- Modal background overlay -->
+            <div class="fixed inset-0 bg-slate-900 bg-opacity-70 transition-opacity" onclick="toggleSettingsModal()"></div>
+
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+            <!-- Modal Content Card -->
+            <div class="inline-block align-middle bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <!-- Header -->
+                <div class="bg-slate-50 px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                    <div class="flex items-center gap-2 text-slate-700">
+                        <i class="fa-solid fa-cog text-emerald-600"></i>
+                        <h3 class="text-sm font-bold uppercase tracking-wider">Paramètres de l'application</h3>
+                    </div>
+                    <button onclick="toggleSettingsModal()" class="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-200 transition">
+                        <i class="fa-solid fa-times"></i>
+                    </button>
+                </div>
+
+                <!-- Settings Content -->
+                <div class="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+                    <!-- Manage Varieties -->
+                    <div>
+                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                            <i class="fa-solid fa-tags text-emerald-600"></i>
+                            <span>Variétés de pommes de terre de test</span>
+                        </h4>
+                        <p class="text-xs text-slate-400 mb-3">Ajoutez ou supprimez des variétés prédéfinies dans votre formulaire.</p>
+
+                        <!-- Add variety input -->
+                        <div class="flex gap-2">
+                            <input type="text" id="setting-new-variety" class="flex-1 px-3 py-1.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-sm" placeholder="Nouvelle variété (ex: Celtiane)">
+                            <button onclick="addCustomVariety()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition">
+                                Ajouter
+                            </button>
+                        </div>
+
+                        <!-- Variety badge list -->
+                        <div id="settings-varieties-list" class="flex flex-wrap gap-1.5 mt-3">
+                            <!-- Badges injected via JS -->
+                        </div>
+                    </div>
+
+                    <!-- Manage Chauffeurs / Accounts -->
+                    <div class="border-t border-slate-100 pt-5">
+                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                            <i class="fa-solid fa-users text-emerald-600"></i>
+                            <span>Comptes Chauffeurs enregistrés</span>
+                        </h4>
+                        <div class="bg-slate-50 border border-slate-100 rounded-xl overflow-hidden mt-2">
+                            <ul id="settings-accounts-list" class="divide-y divide-slate-200 text-xs text-slate-600">
+                                <!-- Registered users injected here -->
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Database Maintenance / Reset -->
+                    <div class="border-t border-slate-100 pt-5">
+                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 text-rose-500 flex items-center gap-1.5">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                            <span>Zone de Danger</span>
+                        </h4>
+                        <p class="text-xs text-slate-400 mb-3">Ces actions suppriment définitivement vos données d'échantillonnage de cet appareil.</p>
+
+                        <div class="flex flex-col sm:flex-row gap-2">
+                            <button onclick="clearSamplingDatabase()" class="flex-1 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 py-2 px-3 rounded-lg text-xs font-bold transition text-center">
+                                <i class="fa-solid fa-trash mr-1.5"></i> Vider les prélèvements
+                            </button>
+                            <button onclick="factoryReset()" class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-3 rounded-lg text-xs font-bold transition text-center shadow">
+                                <i class="fa-solid fa-bomb mr-1.5"></i> Réinitialisation totale
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="bg-slate-50 px-6 py-4 border-t border-slate-100 text-right">
+                    <button onclick="toggleSettingsModal()" class="w-full sm:w-auto px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-bold transition">
+                        Enregistrer & Fermer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- APPLICATION LOGIC / JAVASCRIPT -->
+    <script>
+        // ----------------------------------------------------
+        // INITIAL DATABASE CONFIG & DEFAULTS
+        // ----------------------------------------------------
+        const DEFAULT_ACCOUNTS = [
+            { username: 'chauffeur1', password: 'password123', fullname: 'Jean Dupont' },
+            { username: 'driver', password: 'legouessant', fullname: 'Pierre Moreau' }
+        ];
+
+        const DEFAULT_VARIETIES = [
+            'Bintje', 'Charlotte', 'Agata', 'Amandine', 'Monalisa', 'Spunta', 'Désirée', 'Agria', 'Caesar', 'Victoria'
+        ];
+
+        const DEFAULT_SAMPLING_ORDERS = [
+            {
+                id: 'order-1',
+                lotNumber: '2026-A10',
+                variety: 'Bintje',
+                bacsCount: 12,
+                weight: 300.5,
+                producer: 'Ferme de Kerloët - GAEC Martin',
+                driver: 'Jean Dupont',
+                datetime: '2026-07-25T10:30',
+                comment: 'Tubercules réguliers, bon calibrage. Absence de gale.'
+            },
+            {
+                id: 'order-2',
+                lotNumber: '45B98',
+                variety: 'Charlotte',
+                bacsCount: 8,
+                weight: 195.2,
+                producer: 'Exploitation Rannou S.A.',
+                driver: 'Pierre Moreau',
+                datetime: '2026-07-25T11:45',
+                comment: 'Légère présence de terre adhérant aux tubercules.'
+            }
+        ];
+
+        // ----------------------------------------------------
+        // SYSTEM STATE
+        // ----------------------------------------------------
+        let accounts = [];
+        let varieties = [];
+        let samplingOrders = [];
+        let currentUser = null;
+
+        // Initialize state from LocalStorage or Load Defaults
+        function initializeDatabase() {
+            // Load Driver Accounts
+            if (!localStorage.getItem('lg_accounts')) {
+                localStorage.setItem('lg_accounts', JSON.stringify(DEFAULT_ACCOUNTS));
+            }
+            accounts = JSON.parse(localStorage.getItem('lg_accounts'));
+
+            // Load Potato Varieties
+            if (!localStorage.getItem('lg_varieties')) {
+                localStorage.setItem('lg_varieties', JSON.stringify(DEFAULT_VARIETIES));
+            }
+            varieties = JSON.parse(localStorage.getItem('lg_varieties'));
+
+            // Load Sampling Orders
+            if (!localStorage.getItem('lg_orders')) {
+                localStorage.setItem('lg_orders', JSON.stringify(DEFAULT_SAMPLING_ORDERS));
+            }
+            samplingOrders = JSON.parse(localStorage.getItem('lg_orders'));
+
+            // Check if active user session is saved (Remember me check)
+            const savedUser = localStorage.getItem('lg_current_user') || sessionStorage.getItem('lg_current_user');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                showDashboard();
+            } else {
+                showAuth();
+            }
+        }
+
+        // ----------------------------------------------------
+        // VIEWS SYSTEM (SPA NAVIGATION)
+        // ----------------------------------------------------
+        function showAuth() {
+            document.getElementById('auth-view').classList.remove('hidden');
+            document.getElementById('dashboard-view').classList.add('hidden');
+            currentUser = null;
+        }
+
+        function showDashboard() {
+            document.getElementById('auth-view').classList.add('hidden');
+            document.getElementById('dashboard-view').classList.remove('hidden');
+
+            // Set header values
+            document.getElementById('header-driver-name').textContent = currentUser.fullname;
+            document.getElementById('form-driver').value = currentUser.fullname;
+
+            // Sync lists and render data
+            syncVarietyDropdowns();
+            resetForm();
+            renderOrdersTable();
+            renderKPIs();
+        }
+
+        // Toggle authentication tabs
+        function switchAuthTab(tab) {
+            const tabLogin = document.getElementById('tab-login');
+            const tabRegister = document.getElementById('tab-register');
+            const formLogin = document.getElementById('login-form');
+            const formRegister = document.getElementById('register-form');
+
+            if (tab === 'login') {
+                tabLogin.className = "flex-1 py-2.5 text-sm font-semibold rounded-lg text-white bg-emerald-600 shadow-md transition duration-200";
+                tabRegister.className = "flex-1 py-2.5 text-sm font-medium rounded-lg text-emerald-300 hover:text-white transition duration-200";
+                formLogin.classList.remove('hidden');
+                formRegister.classList.add('hidden');
+            } else {
+                tabRegister.className = "flex-1 py-2.5 text-sm font-semibold rounded-lg text-white bg-emerald-600 shadow-md transition duration-200";
+                tabLogin.className = "flex-1 py-2.5 text-sm font-medium rounded-lg text-emerald-300 hover:text-white transition duration-200";
+                formRegister.classList.remove('hidden');
+                formLogin.classList.add('hidden');
+            }
+        }
+
+        function togglePasswordVisibility(fieldId) {
+            const input = document.getElementById(fieldId);
+            const eyeIcon = document.getElementById('eye-icon-' + fieldId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                eyeIcon.className = 'fa-regular fa-eye-slash';
+            } else {
+                input.type = 'password';
+                eyeIcon.className = 'fa-regular fa-eye';
+            }
+        }
+
+        // ----------------------------------------------------
+        // AUTHENTICATION LOGIC (LOGIN / REGISTER)
+        // ----------------------------------------------------
+        function handleLogin(event) {
+            event.preventDefault();
+            const usernameInput = document.getElementById('login-username').value.trim().toLowerCase();
+            const passwordInput = document.getElementById('login-password').value;
+            const rememberMe = document.getElementById('remember-me').checked;
+
+            const user = accounts.find(acc => acc.username.toLowerCase() === usernameInput && acc.password === passwordInput);
+
+            if (user) {
+                currentUser = user;
+                if (rememberMe) {
+                    localStorage.setItem('lg_current_user', JSON.stringify(user));
+                } else {
+                    sessionStorage.setItem('lg_current_user', JSON.stringify(user));
+                }
+                showToast(`Ravi de vous revoir, ${user.fullname} !`, 'success');
+                showDashboard();
+            } else {
+                showToast("Identifiant ou mot de passe incorrect.", "error");
+            }
+        }
+
+        function handleRegister(event) {
+            event.preventDefault();
+            const fullname = document.getElementById('register-fullname').value.trim();
+            const username = document.getElementById('register-username').value.trim().toLowerCase();
+            const password = document.getElementById('register-password').value;
+
+            // Check if username already exists
+            if (accounts.some(acc => acc.username.toLowerCase() === username)) {
+                showToast("Cet identifiant est déjà utilisé par un autre chauffeur.", "warning");
+                return;
+            }
+
+            // Create new driver account
+            const newUser = { username, password, fullname };
+            accounts.push(newUser);
+            localStorage.setItem('lg_accounts', JSON.stringify(accounts));
+
+            showToast("Compte créé avec succès ! Connectez-vous maintenant.", "success");
+            // Switch back to login tab
+            switchAuthTab('login');
+            document.getElementById('login-username').value = username;
+            document.getElementById('login-password').value = password;
+        }
+
+        function handleLogout() {
+            localStorage.removeItem('lg_current_user');
+            sessionStorage.removeItem('lg_current_user');
+            showToast("Déconnecté avec succès. À bientôt !", "info");
+            showAuth();
+        }
+
+        // ----------------------------------------------------
+        // DYNAMIC DOM RENDERING & STATS
+        // ----------------------------------------------------
+        function syncVarietyDropdowns() {
+            const formVariety = document.getElementById('form-variety');
+            const filterVariety = document.getElementById('filter-variety');
+
+            // Save selected values to preserve them if needed
+            const prevFormVal = formVariety.value;
+            const prevFilterVal = filterVariety.value;
+
+            // Form varieties population
+            let formHTML = '<option value="" disabled selected>Choisir une variété...</option>';
+            varieties.forEach(v => {
+                formHTML += `<option value="${v}">${v}</option>`;
+            });
+            formHTML += '<option value="Autre" class="font-bold text-emerald-700">Autre variété (saisie libre)...</option>';
+            formVariety.innerHTML = formHTML;
+
+            // Filter varieties population
+            let filterHTML = '<option value="">Toutes les variétés</option>';
+            varieties.forEach(v => {
+                filterHTML += `<option value="${v}">${v}</option>`;
+            });
+            filterVariety.innerHTML = filterHTML;
+
+            // Restore if exists
+            formVariety.value = prevFormVal || "";
+            filterVariety.value = prevFilterVal || "";
+        }
+
+        function handleVarietyChange(value) {
+            const customContainer = document.getElementById('custom-variety-container');
+            const customInput = document.getElementById('form-variety-custom');
+            if (value === 'Autre') {
+                customContainer.classList.remove('hidden');
+                customInput.setAttribute('required', 'required');
+            } else {
+                customContainer.classList.add('hidden');
+                customInput.removeAttribute('required');
+                customInput.value = "";
+            }
+        }
+
+        function calculateInstantAverage() {
+            const count = parseFloat(document.getElementById('form-bacs-count').value);
+            const weight = parseFloat(document.getElementById('form-weight').value);
+            const instantDisplay = document.getElementById('instant-avg-display');
+            const instantVal = document.getElementById('instant-avg-val');
+
+            if (count > 0 && weight > 0) {
+                const avg = weight / count;
+                instantVal.textContent = avg.toFixed(2);
+                instantDisplay.classList.remove('hidden');
+
+                // Visual caution color coding for average potato crate weight (typically 20-30kg for common sampling crates)
+                if (avg < 10 || avg > 40) {
+                    instantVal.className = "text-amber-600 animate-pulse";
+                } else {
+                    instantVal.className = "text-emerald-700 font-bold";
+                }
+            } else {
+                instantDisplay.classList.add('hidden');
+            }
+        }
+
+        function renderKPIs() {
+            const filteredOrders = samplingOrders; // Calculate total stats on whole DB
+            const totalLots = filteredOrders.length;
+            const totalBacs = filteredOrders.reduce((sum, order) => sum + parseInt(order.bacsCount || 0), 0);
+            const totalWeight = filteredOrders.reduce((sum, order) => sum + parseFloat(order.weight || 0), 0);
+            const avgWeight = totalBacs > 0 ? (totalWeight / totalBacs) : 0;
+
+            document.getElementById('kpi-total-lots').textContent = totalLots;
+            document.getElementById('kpi-total-bacs').textContent = totalBacs;
+            document.getElementById('kpi-total-weight').textContent = `${totalWeight.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} kg`;
+            document.getElementById('kpi-avg-weight').textContent = `${avgWeight.toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 2 })} kg`;
+        }
+
+        function renderOrdersTable() {
+            const tbody = document.getElementById('orders-tbody');
+            const emptyState = document.getElementById('empty-state');
+            const searchQuery = document.getElementById('search-query').value.trim().toLowerCase();
+            const varietyFilter = document.getElementById('filter-variety').value;
+
+            // Filter data
+            const filtered = samplingOrders.filter(order => {
+                const matchSearch = (
+                    order.lotNumber.toLowerCase().includes(searchQuery) ||
+                    order.producer.toLowerCase().includes(searchQuery) ||
+                    order.variety.toLowerCase().includes(searchQuery) ||
+                    (order.driver && order.driver.toLowerCase().includes(searchQuery))
+                );
+
+                const matchVariety = !varietyFilter || order.variety === varietyFilter;
+
+                return matchSearch && matchVariety;
+            });
+
+            // Sort by Date/Time descending
+            filtered.sort((a, b) => new Date(b.datetime) - new Date(a.datetime));
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = "";
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+
+            let rowsHTML = "";
+            filtered.forEach(order => {
+                const dateObj = new Date(order.datetime);
+                const formattedDate = dateObj.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+                const formattedTime = dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+
+                rowsHTML += `
+                    <tr class="hover:bg-slate-50/70 transition duration-150">
+                        <td class="px-4 py-3.5 whitespace-nowrap">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold font-mono bg-emerald-100 text-emerald-800">
+                                LOT-${order.lotNumber}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3.5">
+                            <div class="text-sm font-semibold text-slate-800">${order.variety}</div>
+                        </td>
+                        <td class="px-4 py-3.5 text-right font-mono text-sm font-semibold text-slate-700">
+                            ${order.bacsCount}
+                        </td>
+                        <td class="px-4 py-3.5 text-right font-mono text-sm font-bold text-emerald-700">
+                            ${parseFloat(order.weight).toFixed(1)} <span class="text-[10px] font-normal text-slate-400">kg</span>
+                        </td>
+                        <td class="px-4 py-3.5 whitespace-nowrap">
+                            <div class="text-xs font-bold text-slate-700 truncate max-w-[140px]" title="${order.producer}">${order.producer}</div>
+                            <div class="text-[10px] text-slate-400 mt-0.5">${formattedDate} &agrave; ${formattedTime}</div>
+                        </td>
+                        <td class="px-4 py-3.5 whitespace-nowrap text-right text-xs font-medium space-x-1">
+                            <button onclick="openTicketModal('${order.id}')" class="inline-flex items-center gap-1 bg-slate-100 hover:bg-emerald-50 text-slate-600 hover:text-brand-darkgreen p-1.5 rounded-lg transition" title="Voir / Imprimer le ticket">
+                                <i class="fa-solid fa-receipt"></i>
+                            </button>
+                            <button onclick="loadOrderIntoForm('${order.id}')" class="inline-flex items-center gap-1 bg-slate-100 hover:bg-amber-50 text-slate-600 hover:text-amber-700 p-1.5 rounded-lg transition" title="Modifier le lot">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <button onclick="deleteOrder('${order.id}')" class="inline-flex items-center gap-1 bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 p-1.5 rounded-lg transition" title="Supprimer le lot">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = rowsHTML;
+        }
+
+        // ----------------------------------------------------
+        // SAMPLING FORM & ORDER ACTIONS
+        // ----------------------------------------------------
+        function handleFormSubmit(event) {
+            event.preventDefault();
+
+            const orderIdField = document.getElementById('form-order-id').value;
+            let lotNumber = document.getElementById('form-lot-number').value.trim();
+            // Automatically strip starting "LOT-" if user entered it
+            if (lotNumber.toUpperCase().startsWith('LOT-')) {
+                lotNumber = lotNumber.slice(4);
+            }
+
+            const varietySelect = document.getElementById('form-variety').value;
+            const customVariety = document.getElementById('form-variety-custom').value.trim();
+            const variety = varietySelect === 'Autre' ? customVariety : varietySelect;
+
+            const bacsCount = parseInt(document.getElementById('form-bacs-count').value);
+            const weight = parseFloat(document.getElementById('form-weight').value);
+            const producer = document.getElementById('form-producer').value.trim();
+            const driver = document.getElementById('form-driver').value.trim();
+            const datetime = document.getElementById('form-datetime').value;
+            const comment = document.getElementById('form-comment').value.trim();
+
+            if (!variety) {
+                showToast("Veuillez sélectionner ou préciser la variété de pommes de terre.", "warning");
+                return;
+            }
+
+            if (orderIdField) {
+                // UPDATE MODE
+                const index = samplingOrders.findIndex(o => o.id === orderIdField);
+                if (index !== -1) {
+                    samplingOrders[index] = {
+                        id: orderIdField, lotNumber, variety, bacsCount, weight, producer, driver, datetime, comment
+                    };
+                    showToast("L'échantillon a été mis à jour.", "success");
+                }
+            } else {
+                // CREATE MODE
+                const newOrder = {
+                    id: 'order-' + Date.now(),
+                    lotNumber, variety, bacsCount, weight, producer, driver, datetime, comment
+                };
+                samplingOrders.push(newOrder);
+                showToast("Nouvel échantillonnage enregistré avec succès !", "success");
+            }
+
+            // Save to localStorage
+            localStorage.setItem('lg_orders', JSON.stringify(samplingOrders));
+
+            // Reload UI
+            resetForm();
+            renderOrdersTable();
+            renderKPIs();
+        }
+
+        function loadOrderIntoForm(id) {
+            const order = samplingOrders.find(o => o.id === id);
+            if (!order) return;
+
+            document.getElementById('form-title').textContent = "Modifier l'échantillon";
+            document.getElementById('form-mode-badge').textContent = "Édition";
+            document.getElementById('form-mode-badge').className = "text-xs bg-amber-900/60 text-amber-200 px-2 py-1 rounded font-mono";
+            document.getElementById('form-order-id').value = order.id;
+
+            // Clean lot number for display
+            document.getElementById('form-lot-number').value = order.lotNumber;
+
+            // Setup variety selection
+            const varietyDropdown = document.getElementById('form-variety');
+            if (varieties.includes(order.variety)) {
+                varietyDropdown.value = order.variety;
+                handleVarietyChange(order.variety);
+            } else {
+                varietyDropdown.value = 'Autre';
+                handleVarietyChange('Autre');
+                document.getElementById('form-variety-custom').value = order.variety;
+            }
+
+            document.getElementById('form-bacs-count').value = order.bacsCount;
+            document.getElementById('form-weight').value = order.weight;
+            document.getElementById('form-producer').value = order.producer;
+            document.getElementById('form-driver').value = order.driver;
+            document.getElementById('form-datetime').value = order.datetime;
+            document.getElementById('form-comment').value = order.comment;
+
+            calculateInstantAverage();
+
+            // Smooth scroll to form on mobile devices
+            document.getElementById('sampling-form').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function deleteOrder(id) {
+            const order = samplingOrders.find(o => o.id === id);
+            if (!order) return;
+
+            if (confirm(`Voulez-vous vraiment supprimer définitivement le lot LOT-${order.lotNumber} ?`)) {
+                samplingOrders = samplingOrders.filter(o => o.id !== id);
+                localStorage.setItem('lg_orders', JSON.stringify(samplingOrders));
+                showToast("Échantillon supprimé.", "info");
+                renderOrdersTable();
+                renderKPIs();
+                resetForm();
+            }
+        }
+
+        function resetForm() {
+            document.getElementById('form-title').textContent = "Créer un échantillon";
+            document.getElementById('form-mode-badge').textContent = "Nouveau";
+            document.getElementById('form-mode-badge').className = "text-xs bg-emerald-900/60 text-emerald-200 px-2 py-1 rounded font-mono";
+            document.getElementById('form-order-id').value = "";
+            document.getElementById('sampling-form').reset();
+
+            // Setup datetime default to local timezone correct format
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            document.getElementById('form-datetime').value = now.toISOString().slice(0, 16);
+
+            if (currentUser) {
+                document.getElementById('form-driver').value = currentUser.fullname;
+            }
+
+            handleVarietyChange("");
+            calculateInstantAverage();
+        }
+
+        // ----------------------------------------------------
+        // EXPORT & TICKET SYSTEMS
+        // ----------------------------------------------------
+        function openTicketModal(id) {
+            const order = samplingOrders.find(o => o.id === id);
+            if (!order) return;
+
+            const dateObj = new Date(order.datetime);
+            const formattedDate = dateObj.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) +
+                                  ' à ' + dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+
+            const avgWeight = order.bacsCount > 0 ? (order.weight / order.bacsCount) : 0;
+
+            document.getElementById('ticket-lot-number').textContent = `LOT-${order.lotNumber.toUpperCase()}`;
+            document.getElementById('ticket-variety').textContent = order.variety.toUpperCase();
+            document.getElementById('ticket-producer').textContent = order.producer.toUpperCase();
+            document.getElementById('ticket-bacs').textContent = `${order.bacsCount} Bacs`;
+            document.getElementById('ticket-weight').textContent = `${parseFloat(order.weight).toFixed(2)} kg`;
+            document.getElementById('ticket-avg-weight').textContent = `${avgWeight.toFixed(2)} kg`;
+            document.getElementById('ticket-driver').textContent = order.driver;
+            document.getElementById('ticket-date').textContent = formattedDate;
+            document.getElementById('ticket-comments').textContent = order.comment || "Aucune observation renseignée.";
+            document.getElementById('ticket-barcode-num').textContent = `*LGB-LOT-${order.lotNumber.toUpperCase()}*`;
+
+            document.getElementById('ticket-modal').classList.remove('hidden');
+        }
+
+        function closeTicketModal() {
+            document.getElementById('ticket-modal').classList.add('hidden');
+        }
+
+        // CSV export formatted specifically with semicolon delimiter for Excel French standard
+        function exportCSV() {
+            if (samplingOrders.length === 0) {
+                showToast("Aucun prélèvement à exporter.", "warning");
+                return;
+            }
+
+            const headers = ["Identifiant", "Numero de Lot", "Variete", "Nombre de bacs", "Poids total (kg)", "Poids moyen par bac (kg)", "Producteur", "Chauffeur", "Date heure prélèvement", "Observations"];
+
+            let csvRows = [headers.join(';')];
+
+            samplingOrders.forEach(o => {
+                const avg = o.bacsCount > 0 ? (o.weight / o.bacsCount) : 0;
+                const row = [
+                    o.id,
+                    `LOT-${o.lotNumber}`,
+                    o.variety,
+                    o.bacsCount,
+                    o.weight.toString().replace('.', ','), // decimal separator for French excel
+                    avg.toFixed(2).replace('.', ','),
+                    o.producer,
+                    o.driver,
+                    o.datetime.replace('T', ' '),
+                    o.comment || ""
+                ];
+
+                // Wrap strings with quotes to prevent CSV failures
+                const cleanRow = row.map(val => `"${val.toString().replace(/"/g, '""')}"`);
+                csvRows.push(cleanRow.join(';'));
+            });
+
+            const csvContent = "\ufeff" + csvRows.join("\r\n"); // UTF-8 BOM
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", `échantillons_gouessant_${new Date().toISOString().slice(0, 10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast("Fichier CSV téléchargé avec succès !", "success");
+        }
+
+        function exportJSON() {
+            if (samplingOrders.length === 0) {
+                showToast("Aucune donnée à sauvegarder.", "warning");
+                return;
+            }
+
+            const backupData = {
+                appName: "Le Gouessant Échantillonnage Potato",
+                version: "1.0",
+                backupDate: new Date().toISOString(),
+                orders: samplingOrders,
+                varieties: varieties
+            };
+
+            const jsonString = JSON.stringify(backupData, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", `Gouessant_Backup_${new Date().toISOString().slice(0, 10)}.json`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast("Sauvegarde JSON exportée.", "success");
+        }
+
+        function triggerJSONImport() {
+            document.getElementById('import-file-input').click();
+        }
+
+        function importJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    if (importedData && importedData.orders && Array.isArray(importedData.orders)) {
+
+                        if (confirm(`Êtes-vous sûr de vouloir fusionner les ${importedData.orders.length} lots importés avec vos données locales ?`)) {
+                            // Merge and prevent duplicate IDs
+                            importedData.orders.forEach(importedOrder => {
+                                if (!samplingOrders.some(existing => existing.id === importedOrder.id)) {
+                                    samplingOrders.push(importedOrder);
+                                } else {
+                                    // Assign new ID to prevent conflicts
+                                    importedOrder.id = 'order-imported-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+                                    samplingOrders.push(importedOrder);
+                                }
+                            });
+
+                            if (importedData.varieties && Array.isArray(importedData.varieties)) {
+                                importedData.varieties.forEach(v => {
+                                    if (!varieties.includes(v)) {
+                                        varieties.push(v);
+                                    }
+                                });
+                                localStorage.setItem('lg_varieties', JSON.stringify(varieties));
+                            }
+
+                            localStorage.setItem('lg_orders', JSON.stringify(samplingOrders));
+                            showToast("Fusion des données réussie !", "success");
+
+                            syncVarietyDropdowns();
+                            renderOrdersTable();
+                            renderKPIs();
+                        }
+                    } else {
+                        showToast("Format de fichier non valide ou corrompu.", "error");
+                    }
+                } catch (err) {
+                    showToast("Erreur lors de la lecture du fichier de sauvegarde.", "error");
+                }
+            };
+            reader.readAsText(file);
+            // clear input target to trigger onChange again if selected same file
+            event.target.value = "";
+        }
+
+        // ----------------------------------------------------
+        // SETTINGS & CONFIGURATION MODAL LOGIC
+        // ----------------------------------------------------
+        function toggleSettingsModal() {
+            const modal = document.getElementById('settings-modal');
+            if (modal.classList.contains('hidden')) {
+                renderSettingsContent();
+                modal.classList.remove('hidden');
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
+        function renderSettingsContent() {
+            // Render Varieties badgess
+            const container = document.getElementById('settings-varieties-list');
+            let badgesHTML = "";
+            varieties.forEach(v => {
+                badgesHTML += `
+                    <span class="inline-flex items-center bg-slate-100 text-slate-800 text-xs font-semibold px-2.5 py-1 rounded-full border border-slate-200">
+                        ${v}
+                        <button onclick="removeVariety('${v}')" class="ml-1 text-slate-400 hover:text-rose-600 transition">
+                            <i class="fa-solid fa-circle-xmark"></i>
+                        </button>
+                    </span>
+                `;
+            });
+            container.innerHTML = badgesHTML;
+
+            // Render Driver Accounts
+            const accountsList = document.getElementById('settings-accounts-list');
+            let accountsHTML = "";
+            accounts.forEach(acc => {
+                const isCurrentUser = currentUser && acc.username === currentUser.username;
+                accountsHTML += `
+                    <li class="flex justify-between items-center px-4 py-3 bg-white">
+                        <div>
+                            <span class="font-bold text-slate-800">${acc.fullname}</span>
+                            <span class="text-slate-400 ml-1.5 text-[10px] font-mono bg-slate-100 px-1.5 py-0.5 rounded">@${acc.username}</span>
+                            ${isCurrentUser ? '<span class="ml-1.5 text-[9px] bg-emerald-100 text-emerald-800 px-1 py-0.5 rounded-full font-bold">Actuel</span>' : ''}
+                        </div>
+                        <div>
+                            ${isCurrentUser ? '' : `
+                                <button onclick="deleteAccount('${acc.username}')" class="text-rose-500 hover:text-rose-700 transition font-bold" title="Supprimer ce chauffeur">
+                                    <i class="fa-solid fa-trash-can text-sm"></i>
+                                </button>
+                            `}
+                        </div>
+                    </li>
+                `;
+            });
+            accountsList.innerHTML = accountsHTML;
+        }
+
+        function addCustomVariety() {
+            const input = document.getElementById('setting-new-variety');
+            const val = input.value.trim();
+            if (!val) return;
+
+            if (varieties.some(v => v.toLowerCase() === val.toLowerCase())) {
+                showToast("Cette variété figure déjà dans la liste.", "warning");
+                return;
+            }
+
+            varieties.push(val);
+            localStorage.setItem('lg_varieties', JSON.stringify(varieties));
+            input.value = "";
+
+            showToast(`Variété ${val} ajoutée avec succès.`, "success");
+            renderSettingsContent();
+            syncVarietyDropdowns();
+        }
+
+        function removeVariety(name) {
+            varieties = varieties.filter(v => v !== name);
+            localStorage.setItem('lg_varieties', JSON.stringify(varieties));
+            showToast(`Variété ${name} retirée.`, "info");
+            renderSettingsContent();
+            syncVarietyDropdowns();
+        }
+
+        function deleteAccount(username) {
+            if (confirm(`Voulez-vous vraiment supprimer le chauffeur @${username} ?`)) {
+                accounts = accounts.filter(acc => acc.username !== username);
+                localStorage.setItem('lg_accounts', JSON.stringify(accounts));
+                showToast(`Compte chauffeur @${username} supprimé.`, "info");
+                renderSettingsContent();
+            }
+        }
+
+        function clearSamplingDatabase() {
+            if (confirm("Voulez-vous supprimer TOUS les prélèvements d'échantillons enregistrés sur cet appareil ? Cette opération est irréversible !")) {
+                samplingOrders = [];
+                localStorage.setItem('lg_orders', JSON.stringify([]));
+                showToast("La base d'échantillons a été entièrement vidée.", "info");
+                renderOrdersTable();
+                renderKPIs();
+                resetForm();
+                toggleSettingsModal();
+            }
+        }
+
+        function factoryReset() {
+            if (confirm("RÉINITIALISATION TOTALE : Cela va supprimer tous les prélèvements, les comptes chauffeurs personnalisés et réinstaller les données d'usine. Continuer ?")) {
+                localStorage.clear();
+                sessionStorage.clear();
+                initializeDatabase();
+                showToast("Application entièrement réinitialisée.", "info");
+                toggleSettingsModal();
+            }
+        }
+
+        // ----------------------------------------------------
+        // BEAUTIFUL TOAST NOTIFICATION SYSTEM
+        // ----------------------------------------------------
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+
+            const toast = document.createElement('div');
+            toast.className = `p-4 rounded-xl shadow-lg border text-xs font-semibold flex items-center justify-between gap-3 pointer-events-auto transition-all duration-300 transform translate-y-2 opacity-0 w-full`;
+
+            let icon = '';
+            let colors = '';
+
+            switch(type) {
+                case 'success':
+                    icon = '<i class="fa-solid fa-circle-check text-emerald-500 text-lg"></i>';
+                    colors = 'bg-emerald-50 border-emerald-200 text-emerald-900';
+                    break;
+                case 'error':
+                    icon = '<i class="fa-solid fa-triangle-exclamation text-rose-500 text-lg"></i>';
+                    colors = 'bg-rose-50 border-rose-200 text-rose-900';
+                    break;
+                case 'warning':
+                    icon = '<i class="fa-solid fa-circle-exclamation text-amber-500 text-lg"></i>';
+                    colors = 'bg-amber-50 border-amber-200 text-amber-900';
+                    break;
+                case 'info':
+                default:
+                    icon = '<i class="fa-solid fa-circle-info text-blue-500 text-lg"></i>';
+                    colors = 'bg-blue-50 border-blue-200 text-blue-900';
+                    break;
+            }
+
+            toast.innerHTML = `
+                <div class="flex items-center gap-2.5">
+                    ${icon}
+                    <span>${message}</span>
+                </div>
+                <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-slate-600 transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            `;
+
+            toast.className += ` ${colors}`;
+            container.appendChild(toast);
+
+            // Animate In
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+
+            // Animate Out & Remove after 4 seconds
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-[-2px]');
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }, 4000);
+        }
+
+        // ----------------------------------------------------
+        // SYSTEM RUNTIME CLOCK
+        // ----------------------------------------------------
+        function startLiveClock() {
+            const clockEl = document.getElementById('live-clock');
+            if (!clockEl) return;
+
+            setInterval(() => {
+                const now = new Date();
+                clockEl.textContent = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) +
+                                      ' - ' + now.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+            }, 1000);
+        }
+
+        // Initialize App on DOM Load
+        window.addEventListener('DOMContentLoaded', () => {
+            initializeDatabase();
+            startLiveClock();
+        });
+    </script>
+</body>
+</html>

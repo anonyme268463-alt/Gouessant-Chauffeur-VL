@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Le Gouessant - Échantillonnage Chauffeur VL</title>
     <link rel="icon" type="image/png" href="./logo.png">
+    <!-- Firebase App and Firestore SDKs (Compat versions for ease of vanilla integration) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -261,6 +264,12 @@
                     </div>
 
                     <div class="flex items-center gap-4">
+                        <!-- Intersession Connection status badge -->
+                        <div class="hidden sm:flex items-center gap-1.5 bg-blue-50 border border-blue-100 px-2.5 py-1.5 rounded-full" title="Intersession active (restaurée)">
+                            <i class="fa-solid fa-key text-blue-500 text-[10px]"></i>
+                            <span class="text-[10px] font-bold text-blue-800">Intersession active</span>
+                        </div>
+
                         <!-- Driver welcome badge -->
                         <div class="flex items-center gap-2 bg-emerald-50 border border-emerald-100 px-3 py-1.5 rounded-full">
                             <div class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
@@ -374,27 +383,40 @@
                         <!-- Row 2: Variety selection with dynamic "Other" field -->
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <label for="form-variety" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Variété <span class="text-rose-500">*</span></label>
-                                <select id="form-variety" required onchange="handleVarietyChange(this.value)"
+                                <label for="form-variety" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Variété <span class="text-slate-400 font-normal">(Optionnel)</span></label>
+                                <select id="form-variety" onchange="handleVarietyChange(this.value)"
                                     class="mt-1 block w-full py-2.5 px-3 border border-slate-300 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
                                     <!-- Dynamic options injected via JS -->
                                 </select>
                             </div>
 
                             <div id="custom-variety-container" class="hidden">
-                                <label for="form-variety-custom" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Préciser variété <span class="text-rose-500">*</span></label>
+                                <label for="form-variety-custom" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Préciser variété <span class="text-slate-400 font-normal">(Optionnel)</span></label>
                                 <input type="text" id="form-variety-custom"
                                     class="mt-1 block w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
                                     placeholder="Nom de variété">
                             </div>
                         </div>
 
+                        <!-- Variety details card -->
+                        <div id="variety-info-card" class="hidden p-3 bg-emerald-50/50 border border-emerald-100 rounded-xl text-xs space-y-1">
+                            <h4 class="font-bold text-emerald-800 flex items-center gap-1.5">
+                                <i class="fa-solid fa-circle-info text-emerald-600"></i>
+                                <span id="info-variety-name">Bintje</span>
+                            </h4>
+                            <div class="grid grid-cols-2 gap-2 text-slate-600 font-medium">
+                                <div><span class="text-slate-400 font-bold">Maturité:</span> <span id="info-variety-maturity">--</span></div>
+                                <div><span class="text-slate-400 font-bold">Chair:</span> <span id="info-variety-flesh">--</span></div>
+                                <div class="col-span-2"><span class="text-slate-400 font-bold">Usages culinaires:</span> <span id="info-variety-usage">--</span></div>
+                            </div>
+                        </div>
+
                         <!-- Row 3: Bacs & Weight -->
                         <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <label for="form-bacs-count" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Nombre de bacs <span class="text-rose-500">*</span></label>
+                                <label for="form-bacs-count" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Nombre de bacs <span class="text-slate-400 font-normal">(Optionnel)</span></label>
                                 <div class="mt-1 relative rounded-lg shadow-sm">
-                                    <input type="number" id="form-bacs-count" required min="1" step="1" oninput="calculateInstantAverage()"
+                                    <input type="number" id="form-bacs-count" min="1" step="1" oninput="calculateInstantAverage()"
                                         class="block w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm font-semibold"
                                         placeholder="1">
                                     <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
@@ -404,9 +426,9 @@
                             </div>
 
                             <div>
-                                <label for="form-weight" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Poids total (kg) <span class="text-rose-500">*</span></label>
+                                <label for="form-weight" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Poids total (kg) <span class="text-slate-400 font-normal">(Optionnel)</span></label>
                                 <div class="mt-1 relative rounded-lg shadow-sm">
-                                    <input type="number" id="form-weight" required min="0.1" step="0.01" oninput="calculateInstantAverage()"
+                                    <input type="number" id="form-weight" min="0.1" step="0.01" oninput="calculateInstantAverage()"
                                         class="block w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm font-semibold"
                                         placeholder="25.5">
                                     <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
@@ -423,8 +445,8 @@
 
                         <!-- Row 4: Producer -->
                         <div>
-                            <label for="form-producer" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Exploitant / Producteur <span class="text-rose-500">*</span></label>
-                            <input type="text" id="form-producer" required
+                            <label for="form-producer" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Exploitant / Producteur <span class="text-slate-400 font-normal">(Optionnel)</span></label>
+                            <input type="text" id="form-producer"
                                 class="mt-1 block w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm placeholder-slate-400"
                                 placeholder="GAEC de la lande, Ferme Martin...">
                         </div>
@@ -432,8 +454,8 @@
                         <!-- Row 4.5: Picking Location (Lieu prenant) -->
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <label for="form-picking-city" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Ville de picking <span class="text-rose-500">*</span></label>
-                                <input type="text" id="form-picking-city" required
+                                <label for="form-picking-city" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Ville de picking <span class="text-slate-400 font-normal">(Optionnel)</span></label>
+                                <input type="text" id="form-picking-city"
                                     class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm placeholder-slate-400"
                                     placeholder="Loudéac, Lamballe...">
                             </div>
@@ -473,6 +495,83 @@
                                     <option value="Terminé">Terminé</option>
                                 </select>
                             </div>
+                        </div>
+
+                        <!-- Visual Quality Section -->
+                        <div class="border-t border-slate-100 pt-4 space-y-3">
+                            <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                                <i class="fa-solid fa-eye text-emerald-600"></i>
+                                <span>Qualité Visuelle</span>
+                            </h4>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                <div>
+                                    <label for="form-quality-aspect" class="block text-[10px] font-semibold text-slate-500 uppercase">Aspect Global</label>
+                                    <select id="form-quality-aspect" class="mt-1 block w-full py-1.5 px-2 border border-slate-300 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs">
+                                        <option value="Non renseigné">Non renseigné</option>
+                                        <option value="Excellent">Excellent</option>
+                                        <option value="Satisfaisant">Satisfaisant</option>
+                                        <option value="Moyen">Moyen</option>
+                                        <option value="Médiocre">Médiocre</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="form-quality-greening" class="block text-[10px] font-semibold text-slate-500 uppercase">Verdissement</label>
+                                    <select id="form-quality-greening" class="mt-1 block w-full py-1.5 px-2 border border-slate-300 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs">
+                                        <option value="Non renseigné">Non renseigné</option>
+                                        <option value="Aucun">Aucun</option>
+                                        <option value="Léger">Léger</option>
+                                        <option value="Moyen">Moyen</option>
+                                        <option value="Important">Important</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="form-quality-scab" class="block text-[10px] font-semibold text-slate-500 uppercase">Gale Commune</label>
+                                    <select id="form-quality-scab" class="mt-1 block w-full py-1.5 px-2 border border-slate-300 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs">
+                                        <option value="Non renseigné">Non renseigné</option>
+                                        <option value="Aucune">Aucune</option>
+                                        <option value="Légère">Légère</option>
+                                        <option value="Moyenne">Moyenne</option>
+                                        <option value="Importante">Importante</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="form-quality-scurf" class="block text-[10px] font-semibold text-slate-500 uppercase">Gale Argentée</label>
+                                    <select id="form-quality-scurf" class="mt-1 block w-full py-1.5 px-2 border border-slate-300 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs">
+                                        <option value="Non renseigné">Non renseigné</option>
+                                        <option value="Aucune">Aucune</option>
+                                        <option value="Légère">Légère</option>
+                                        <option value="Moyenne">Moyenne</option>
+                                        <option value="Importante">Importante</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="form-quality-damage" class="block text-[10px] font-semibold text-slate-500 uppercase">Blessures/Défauts</label>
+                                    <select id="form-quality-damage" class="mt-1 block w-full py-1.5 px-2 border border-slate-300 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs">
+                                        <option value="Non renseigné">Non renseigné</option>
+                                        <option value="Aucune">Aucune</option>
+                                        <option value="Légère">Légère</option>
+                                        <option value="Moyenne">Moyenne</option>
+                                        <option value="Importante">Importante</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="form-quality-rot" class="block text-[10px] font-semibold text-slate-500 uppercase">Pourriture</label>
+                                    <select id="form-quality-rot" class="mt-1 block w-full py-1.5 px-2 border border-slate-300 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs">
+                                        <option value="Non renseigné">Non renseigné</option>
+                                        <option value="Aucune">Aucune</option>
+                                        <option value="Présence suspecte">Présence suspecte</option>
+                                        <option value="Avérée">Avérée</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Trajet field -->
+                        <div>
+                            <label for="form-trajet" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Trajet / Tournée (Sous-catégorie)</label>
+                            <input type="text" id="form-trajet"
+                                class="mt-1 block w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm placeholder-slate-400"
+                                placeholder="ex: Tournée Ouest, Ligne Nord...">
                         </div>
 
                         <!-- Row 6: Comments -->
@@ -689,6 +788,19 @@
                                 <span class="block font-bold text-[9px] text-stone-600 uppercase mb-0.5">OBSERVATIONS :</span>
                                 <p class="italic text-stone-600 text-[9px] leading-relaxed whitespace-pre-wrap font-sans" id="ticket-comments">Aucune observation.</p>
                             </div>
+
+                            <!-- Visual quality inside ticket -->
+                            <div class="mt-3 pt-2 border-t border-dashed border-stone-200" id="ticket-quality-container">
+                                <span class="block font-bold text-[9px] text-stone-600 uppercase mb-1">QUALITÉ VISUELLE :</span>
+                                <div class="grid grid-cols-2 gap-x-2 gap-y-1 text-[8px] text-stone-700 font-mono">
+                                    <div>ASPECT: <span class="font-bold text-stone-900" id="ticket-quality-aspect">--</span></div>
+                                    <div>VERDISSEMENT: <span class="font-bold text-stone-900" id="ticket-quality-greening">--</span></div>
+                                    <div>GALE COM.: <span class="font-bold text-stone-900" id="ticket-quality-scab">--</span></div>
+                                    <div>GALE ARG.: <span class="font-bold text-stone-900" id="ticket-quality-scurf">--</span></div>
+                                    <div>BLESSURES: <span class="font-bold text-stone-900" id="ticket-quality-damage">--</span></div>
+                                    <div>POURRITURE: <span class="font-bold text-stone-900" id="ticket-quality-rot">--</span></div>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Barcode placeholder aesthetic -->
@@ -746,13 +858,16 @@
                 <!-- Settings Tabs Menu -->
                 <div class="flex border-b border-slate-200 bg-slate-50">
                     <button id="settings-tab-profile" onclick="switchSettingsTab('profile')" class="flex-1 py-3 text-center text-xs font-bold uppercase tracking-wider border-b-2 border-emerald-600 text-emerald-700">
-                        <i class="fa-solid fa-user-circle mr-1"></i>Mon Profil
+                        <i class="fa-solid fa-user-circle mr-1"></i>Profil
                     </button>
                     <button id="settings-tab-varieties" onclick="switchSettingsTab('varieties')" class="flex-1 py-3 text-center text-xs font-bold uppercase tracking-wider border-b-2 border-transparent text-slate-500 hover:text-slate-800">
                         <i class="fa-solid fa-tags mr-1"></i>Variétés
                     </button>
+                    <button id="settings-tab-firestore" onclick="switchSettingsTab('firestore')" class="flex-1 py-3 text-center text-xs font-bold uppercase tracking-wider border-b-2 border-transparent text-slate-500 hover:text-slate-800">
+                        <i class="fa-solid fa-database mr-1"></i>Firestore
+                    </button>
                     <button id="settings-tab-admin" onclick="switchSettingsTab('admin')" class="flex-1 py-3 text-center text-xs font-bold uppercase tracking-wider border-b-2 border-transparent text-slate-500 hover:text-slate-800">
-                        <i class="fa-solid fa-lock mr-1"></i>Administration PIN
+                        <i class="fa-solid fa-lock mr-1"></i>Admin PIN
                     </button>
                 </div>
 
@@ -801,6 +916,59 @@
                         <!-- Variety badge list -->
                         <div id="settings-varieties-list" class="flex flex-wrap gap-1.5 mt-3">
                             <!-- Badges injected via JS -->
+                        </div>
+                    </div>
+
+                    <!-- TAB 4: Firestore Synchro -->
+                    <div id="settings-panel-firestore" class="space-y-4 hidden">
+                        <h4 class="text-sm font-bold text-slate-800 border-b pb-2">Configuration de la Base de Données Firestore</h4>
+                        <p class="text-xs text-slate-400">Configurez votre base de données Firebase globale pour délocaliser et synchroniser les sessions, variétés et prélèvements.</p>
+
+                        <div class="space-y-3 bg-slate-50 border border-slate-200 rounded-xl p-4">
+                            <div class="flex items-center justify-between pb-2 border-b border-slate-200">
+                                <label class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                                    <i class="fa-solid fa-cloud text-emerald-600"></i>
+                                    <span>Activer la synchronisation globale</span>
+                                </label>
+                                <input type="checkbox" id="firestore-sync-enabled" onchange="toggleFirestoreSync(this.checked)" class="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded cursor-pointer">
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase">API Key (apiKey)</label>
+                                    <input type="text" id="db-api-key" placeholder="AIzaSy..." class="mt-1 w-full px-2.5 py-1.5 border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase">Project ID (projectId)</label>
+                                    <input type="text" id="db-project-id" placeholder="le-gouessant-app" class="mt-1 w-full px-2.5 py-1.5 border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase">Auth Domain (authDomain)</label>
+                                    <input type="text" id="db-auth-domain" placeholder="le-gouessant-app.firebaseapp.com" class="mt-1 w-full px-2.5 py-1.5 border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase">App ID (appId)</label>
+                                    <input type="text" id="db-app-id" placeholder="1:123456789:web:abcdef" class="mt-1 w-full px-2.5 py-1.5 border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                                </div>
+                            </div>
+
+                            <div class="pt-2 flex flex-col gap-2">
+                                <div class="flex gap-2">
+                                    <button onclick="saveFirestoreConfig()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-1.5 px-3 rounded text-xs font-bold transition text-center shadow">
+                                        Sauvegarder la config
+                                    </button>
+                                    <button onclick="testFirestoreConnection()" class="bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 py-1.5 px-3 rounded text-xs font-bold transition">
+                                        Tester la connexion
+                                    </button>
+                                </div>
+                                <div class="border-t border-slate-200 my-1 pt-2">
+                                    <p class="text-[11px] text-slate-500 mb-1.5 font-medium">Pour réduire la consommation quotidienne de lectures (Lectures Firestore), la synchronisation est optimisée pour s'effectuer à la demande :</p>
+                                    <button onclick="syncNowWithFirestore()" class="w-full inline-flex items-center justify-center gap-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white py-2 px-4 rounded-lg text-xs font-bold transition shadow-md">
+                                        <i class="fa-solid fa-arrows-rotate animate-spin-hover"></i>
+                                        <span>Synchroniser maintenant (Push/Pull)</span>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -908,6 +1076,22 @@
 
     <!-- APPLICATION LOGIC / JAVASCRIPT -->
     <script>
+        // ----------------------------------------------------
+        // POTATO VARIETIES DETAILED INFO
+        // ----------------------------------------------------
+        const VARIETY_DETAILS = {
+            'Bintje': { flesh: 'Demi-farineuse', color: 'Jaune clair', maturity: 'Demi-tardive', usage: 'Frites, Purée, Four' },
+            'Charlotte': { flesh: 'Ferme', color: 'Jaune', maturity: 'Demi-précoce', usage: 'Salade, Vapeur, Rissolée' },
+            'Agata': { flesh: 'Tendre (fondante)', color: 'Jaune très clair', maturity: 'Précoce', usage: 'Four, Purée, Vapeur' },
+            'Amandine': { flesh: 'Très ferme', color: 'Jaune pâle', maturity: 'Très précoce', usage: 'Vapeur, Salade, Rissolée' },
+            'Monalisa': { flesh: 'Tendre (polyvalente)', color: 'Jaune', maturity: 'Demi-précoce', usage: 'Four, Purée, Salade' },
+            'Spunta': { flesh: 'Tendre', color: 'Jaune', maturity: 'Demi-précoce', usage: 'Frites, Four, Purée' },
+            'Désirée': { flesh: 'Demi-farineuse', color: 'Rouge (chair jaune)', maturity: 'Demi-tardive', usage: 'Frites, Purée' },
+            'Agria': { flesh: 'Farineuse', color: 'Jaune prononcé', maturity: 'Demi-tardive', usage: 'Frites faites maison, Purée' },
+            'Caesar': { flesh: 'Farineuse', color: 'Jaune', maturity: 'Demi-tardive', usage: 'Frites, Four' },
+            'Victoria': { flesh: 'Tendre', color: 'Jaune', maturity: 'Précoce', usage: 'Frites, Purée, Vapeur' }
+        };
+
         // ----------------------------------------------------
         // INITIAL DATABASE CONFIG & DEFAULTS
         // ----------------------------------------------------
@@ -1095,6 +1279,9 @@
             accounts.push(newUser);
             localStorage.setItem('lg_accounts', JSON.stringify(accounts));
 
+            // Push to Firestore if connected
+            firestorePushAccount(newUser);
+
             showToast("Compte créé avec succès ! Connectez-vous maintenant.", "success");
             // Switch back to login tab
             switchAuthTab('login');
@@ -1143,6 +1330,7 @@
         function handleVarietyChange(value) {
             const customContainer = document.getElementById('custom-variety-container');
             const customInput = document.getElementById('form-variety-custom');
+
             if (value === 'Autre') {
                 customContainer.classList.remove('hidden');
                 customInput.setAttribute('required', 'required');
@@ -1150,6 +1338,19 @@
                 customContainer.classList.add('hidden');
                 customInput.removeAttribute('required');
                 customInput.value = "";
+            }
+
+            // Update Variety Information Card
+            const card = document.getElementById('variety-info-card');
+            if (value && value !== 'Autre' && VARIETY_DETAILS[value]) {
+                const details = VARIETY_DETAILS[value];
+                document.getElementById('info-variety-name').textContent = value;
+                document.getElementById('info-variety-maturity').textContent = details.maturity;
+                document.getElementById('info-variety-flesh').textContent = details.flesh;
+                document.getElementById('info-variety-usage').textContent = details.usage;
+                card.classList.remove('hidden');
+            } else {
+                card.classList.add('hidden');
             }
         }
 
@@ -1334,44 +1535,63 @@
 
             const varietySelect = document.getElementById('form-variety').value;
             const customVariety = document.getElementById('form-variety-custom').value.trim();
-            const variety = varietySelect === 'Autre' ? customVariety : varietySelect;
+            const variety = varietySelect === 'Autre' ? customVariety : (varietySelect || "Non renseignée");
 
-            const bacsCount = parseInt(document.getElementById('form-bacs-count').value);
-            const weight = parseFloat(document.getElementById('form-weight').value);
-            const producer = document.getElementById('form-producer').value.trim();
-            const pickingCity = document.getElementById('form-picking-city').value.trim();
-            const pickingAddress = document.getElementById('form-picking-address').value.trim();
+            const bacsCountVal = document.getElementById('form-bacs-count').value;
+            const bacsCount = bacsCountVal ? parseInt(bacsCountVal) : "";
+
+            const weightVal = document.getElementById('form-weight').value;
+            const weight = weightVal ? parseFloat(weightVal) : "";
+
+            const producer = document.getElementById('form-producer').value.trim() || "";
+            const pickingCity = document.getElementById('form-picking-city').value.trim() || "";
+            const pickingAddress = document.getElementById('form-picking-address').value.trim() || "";
             const driver = document.getElementById('form-driver').value.trim();
             const datetime = document.getElementById('form-datetime').value;
             const status = document.getElementById('form-status').value;
             const comment = document.getElementById('form-comment').value.trim();
+            const trajet = document.getElementById('form-trajet').value.trim();
 
-            if (!variety) {
-                showToast("Veuillez sélectionner ou préciser la variété de pommes de terre.", "warning");
-                return;
-            }
+            // Visual quality fields
+            const qualityAspect = document.getElementById('form-quality-aspect').value;
+            const qualityGreening = document.getElementById('form-quality-greening').value;
+            const qualityScab = document.getElementById('form-quality-scab').value;
+            const qualityScurf = document.getElementById('form-quality-scurf').value;
+            const qualityDamage = document.getElementById('form-quality-damage').value;
+            const qualityRot = document.getElementById('form-quality-rot').value;
+
+            let targetOrder;
 
             if (orderIdField) {
                 // UPDATE MODE
                 const index = samplingOrders.findIndex(o => o.id === orderIdField);
                 if (index !== -1) {
                     samplingOrders[index] = {
-                        id: orderIdField, lotNumber, variety, bacsCount, weight, producer, pickingCity, pickingAddress, driver, datetime, status, comment
+                        id: orderIdField, lotNumber, variety, bacsCount, weight, producer, pickingCity, pickingAddress, driver, datetime, status, comment,
+                        trajet, qualityAspect, qualityGreening, qualityScab, qualityScurf, qualityDamage, qualityRot
                     };
+                    targetOrder = samplingOrders[index];
                     showToast("L'échantillon a été mis à jour.", "success");
                 }
             } else {
                 // CREATE MODE
                 const newOrder = {
                     id: 'order-' + Date.now(),
-                    lotNumber, variety, bacsCount, weight, producer, pickingCity, pickingAddress, driver, datetime, status, comment
+                    lotNumber, variety, bacsCount, weight, producer, pickingCity, pickingAddress, driver, datetime, status, comment,
+                    trajet, qualityAspect, qualityGreening, qualityScab, qualityScurf, qualityDamage, qualityRot
                 };
                 samplingOrders.push(newOrder);
+                targetOrder = newOrder;
                 showToast("Nouvel échantillonnage enregistré avec succès !", "success");
             }
 
             // Save to localStorage
             localStorage.setItem('lg_orders', JSON.stringify(samplingOrders));
+
+            // Sync with Firestore if connected
+            if (targetOrder) {
+                firestorePushOrder(targetOrder);
+            }
 
             // Reload UI
             resetForm();
@@ -1425,6 +1645,10 @@
             if (confirm(`Voulez-vous vraiment supprimer définitivement le lot LOT-${order.lotNumber} ?`)) {
                 samplingOrders = samplingOrders.filter(o => o.id !== id);
                 localStorage.setItem('lg_orders', JSON.stringify(samplingOrders));
+
+                // Firestore delete
+                firestoreDeleteOrder(id);
+
                 showToast("Échantillon supprimé.", "info");
                 renderOrdersTable();
                 renderKPIs();
@@ -1466,25 +1690,35 @@
             const formattedDate = dateObj.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) +
                                   ' à ' + dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 
-            const avgWeight = order.bacsCount > 0 ? (order.weight / order.bacsCount) : 0;
+            const hasBacs = order.bacsCount && parseInt(order.bacsCount) > 0;
+            const hasWeight = order.weight && parseFloat(order.weight) > 0;
+            const avgWeight = (hasBacs && hasWeight) ? (parseFloat(order.weight) / parseInt(order.bacsCount)) : 0;
 
-            document.getElementById('ticket-lot-number').textContent = `LOT-${order.lotNumber.toUpperCase()}`;
-            document.getElementById('ticket-variety').textContent = order.variety.toUpperCase();
-            document.getElementById('ticket-producer').textContent = order.producer.toUpperCase();
+            document.getElementById('ticket-lot-number').textContent = `LOT-${(order.lotNumber || '').toUpperCase()}`;
+            document.getElementById('ticket-variety').textContent = (order.variety || "Non renseignée").toUpperCase();
+            document.getElementById('ticket-producer').textContent = (order.producer || "Non renseigné").toUpperCase();
 
             const cityStr = order.pickingCity || "";
             const addrStr = order.pickingAddress || "";
             const locationText = [addrStr, cityStr].filter(Boolean).join(", ");
-            document.getElementById('ticket-location').textContent = (locationText || "--").toUpperCase();
+            document.getElementById('ticket-location').textContent = (locationText || "Non renseigné").toUpperCase();
 
-            document.getElementById('ticket-bacs').textContent = `${order.bacsCount} Bacs`;
-            document.getElementById('ticket-weight').textContent = `${parseFloat(order.weight).toFixed(2)} kg`;
-            document.getElementById('ticket-avg-weight').textContent = `${avgWeight.toFixed(2)} kg`;
+            document.getElementById('ticket-bacs').textContent = order.bacsCount ? `${order.bacsCount} Bacs` : "N/A";
+            document.getElementById('ticket-weight').textContent = order.weight ? `${parseFloat(order.weight).toFixed(2)} kg` : "N/A";
+            document.getElementById('ticket-avg-weight').textContent = avgWeight > 0 ? `${avgWeight.toFixed(2)} kg` : "N/A";
             document.getElementById('ticket-driver').textContent = order.driver;
             document.getElementById('ticket-status').textContent = order.status || "En cours";
             document.getElementById('ticket-date').textContent = formattedDate;
             document.getElementById('ticket-comments').textContent = order.comment || "Aucune observation renseignée.";
-            document.getElementById('ticket-barcode-num').textContent = `*LGB-LOT-${order.lotNumber.toUpperCase()}*`;
+            document.getElementById('ticket-barcode-num').textContent = `*LGB-LOT-${(order.lotNumber || '').toUpperCase()}*`;
+
+            // Populate visual quality on ticket
+            document.getElementById('ticket-quality-aspect').textContent = (order.qualityAspect || "Non renseigné").toUpperCase();
+            document.getElementById('ticket-quality-greening').textContent = (order.qualityGreening || "Non renseigné").toUpperCase();
+            document.getElementById('ticket-quality-scab').textContent = (order.qualityScab || "Non renseigné").toUpperCase();
+            document.getElementById('ticket-quality-scurf').textContent = (order.qualityScurf || "Non renseigné").toUpperCase();
+            document.getElementById('ticket-quality-damage').textContent = (order.qualityDamage || "Non renseigné").toUpperCase();
+            document.getElementById('ticket-quality-rot').textContent = (order.qualityRot || "Non renseigné").toUpperCase();
 
             document.getElementById('ticket-modal').classList.remove('hidden');
         }
@@ -1700,6 +1934,9 @@
                 document.getElementById('header-driver-name').textContent = currentUser.fullname;
                 document.getElementById('form-driver').value = currentUser.fullname;
 
+                // Push to Firestore if active
+                firestorePushAccount(currentUser);
+
                 showToast("Profil chauffeur mis à jour avec succès !", "success");
                 renderSettingsContent();
             } else {
@@ -1813,6 +2050,9 @@
             accounts.push(newUser);
             localStorage.setItem('lg_accounts', JSON.stringify(accounts));
 
+            // Sync with Firestore if active
+            firestorePushAccount(newUser);
+
             // Reset form
             document.getElementById('admin-create-driver-form').reset();
 
@@ -1858,6 +2098,10 @@
                 }
 
                 localStorage.setItem('lg_accounts', JSON.stringify(accounts));
+
+                // Sync with Firestore if active
+                firestorePushAccount(accounts[accIndex]);
+
                 showToast(`Compte de ${fullnameVal} mis à jour avec succès.`, "success");
                 renderSettingsContent();
             } else {
@@ -1879,6 +2123,9 @@
             localStorage.setItem('lg_varieties', JSON.stringify(varieties));
             input.value = "";
 
+            // Sync with Firestore if active
+            firestorePushVarieties();
+
             showToast(`Variété ${val} ajoutée avec succès.`, "success");
             renderSettingsContent();
             syncVarietyDropdowns();
@@ -1887,6 +2134,10 @@
         function removeVariety(name) {
             varieties = varieties.filter(v => v !== name);
             localStorage.setItem('lg_varieties', JSON.stringify(varieties));
+
+            // Sync with Firestore if active
+            firestorePushVarieties();
+
             showToast(`Variété ${name} retirée.`, "info");
             renderSettingsContent();
             syncVarietyDropdowns();
@@ -1896,6 +2147,10 @@
             if (confirm(`Voulez-vous vraiment supprimer le chauffeur @${username} ?`)) {
                 accounts = accounts.filter(acc => acc.username !== username);
                 localStorage.setItem('lg_accounts', JSON.stringify(accounts));
+
+                // Sync with Firestore if active
+                firestoreDeleteAccount(username);
+
                 showToast(`Compte chauffeur @${username} supprimé.`, "info");
                 renderSettingsContent();
             }
@@ -1981,6 +2236,290 @@
                     toast.remove();
                 }, 300);
             }, 4000);
+        }
+
+        // ----------------------------------------------------
+        // FIRESTORE OPTIMIZED SYNCHRONIZATION SYSTEM (ON-DEMAND)
+        // ----------------------------------------------------
+        let db = null;
+        let firebaseApp = null;
+
+        function loadFirestoreConfigUI() {
+            document.getElementById('firestore-sync-enabled').checked = localStorage.getItem('lg_firestore_enabled') === 'true';
+            document.getElementById('db-api-key').value = localStorage.getItem('lg_firestore_api_key') || "";
+            document.getElementById('db-project-id').value = localStorage.getItem('lg_firestore_project_id') || "";
+            document.getElementById('db-auth-domain').value = localStorage.getItem('lg_firestore_auth_domain') || "";
+            document.getElementById('db-app-id').value = localStorage.getItem('lg_firestore_app_id') || "";
+        }
+
+        function saveFirestoreConfig() {
+            const enabled = document.getElementById('firestore-sync-enabled').checked;
+            const apiKey = document.getElementById('db-api-key').value.trim();
+            const projectId = document.getElementById('db-project-id').value.trim();
+            const authDomain = document.getElementById('db-auth-domain').value.trim();
+            const appId = document.getElementById('db-app-id').value.trim();
+
+            localStorage.setItem('lg_firestore_enabled', enabled ? 'true' : 'false');
+            localStorage.setItem('lg_firestore_api_key', apiKey);
+            localStorage.setItem('lg_firestore_project_id', projectId);
+            localStorage.setItem('lg_firestore_auth_domain', authDomain);
+            localStorage.setItem('lg_firestore_app_id', appId);
+
+            showToast("Configuration Firestore enregistrée !", "success");
+
+            if (enabled) {
+                initFirestore();
+            } else {
+                disconnectFirestore();
+            }
+        }
+
+        function toggleFirestoreSync(enabled) {
+            localStorage.setItem('lg_firestore_enabled', enabled ? 'true' : 'false');
+            if (enabled) {
+                initFirestore();
+            } else {
+                disconnectFirestore();
+            }
+        }
+
+        function initFirestore() {
+            const enabled = localStorage.getItem('lg_firestore_enabled') === 'true';
+            const apiKey = localStorage.getItem('lg_firestore_api_key');
+            const projectId = localStorage.getItem('lg_firestore_project_id');
+            const authDomain = localStorage.getItem('lg_firestore_auth_domain');
+            const appId = localStorage.getItem('lg_firestore_app_id');
+
+            if (!enabled || !apiKey || !projectId || !appId) {
+                return;
+            }
+
+            try {
+                const firebaseConfig = {
+                    apiKey: apiKey,
+                    authDomain: authDomain,
+                    projectId: projectId,
+                    appId: appId
+                };
+
+                // Initialize Firebase Compat
+                if (!firebase.apps.length) {
+                    firebaseApp = firebase.initializeApp(firebaseConfig);
+                } else {
+                    firebaseApp = firebase.app();
+                }
+
+                db = firebaseApp.firestore();
+                showToast("Connexion globale Firestore établie.", "success");
+
+                // Optimized: Perform single on-demand Push/Pull sync on boot to minimize continuous reads
+                syncNowWithFirestore(true);
+            } catch (err) {
+                console.error("Firestore Init Error:", err);
+                showToast("Échec de connexion Firestore. Mode Local actif.", "warning");
+            }
+        }
+
+        function disconnectFirestore() {
+            db = null;
+            showToast("Synchronisation globale désactivée.", "info");
+        }
+
+        function syncNowWithFirestore(isSilent = false) {
+            ensureDBReady();
+            if (!db) {
+                if (!isSilent) {
+                    showToast("Firestore n'est pas connecté. Veuillez vérifier votre configuration et l'activer.", "warning");
+                }
+                return;
+            }
+
+            if (!isSilent) {
+                showToast("Synchronisation manuelle en cours (Push/Pull)...", "info");
+            }
+
+            // 1. Pull & Push Driver Accounts
+            db.collection('accounts').get().then(snapshot => {
+                let updated = false;
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const index = accounts.findIndex(acc => acc.username.toLowerCase() === doc.id.toLowerCase());
+                    if (index === -1) {
+                        accounts.push(data);
+                        updated = true;
+                    } else {
+                        accounts[index] = data;
+                        updated = true;
+                    }
+                });
+                if (updated) {
+                    localStorage.setItem('lg_accounts', JSON.stringify(accounts));
+                    renderSettingsContent();
+                }
+
+                // Push local ones to ensure they are on cloud
+                accounts.forEach(acc => {
+                    db.collection('accounts').doc(acc.username.toLowerCase()).set(acc);
+                });
+            }).catch(err => {
+                console.warn("Pull accounts error:", err);
+            });
+
+            // 2. Pull & Push Varieties
+            db.collection('config').doc('varieties').get().then(doc => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    if (data && data.list && Array.isArray(data.list)) {
+                        let updated = false;
+                        data.list.forEach(v => {
+                            if (!varieties.includes(v)) {
+                                varieties.push(v);
+                                updated = true;
+                            }
+                        });
+                        if (updated) {
+                            localStorage.setItem('lg_varieties', JSON.stringify(varieties));
+                            syncVarietyDropdowns();
+                            renderSettingsContent();
+                        }
+                    }
+                }
+                // Push local list
+                db.collection('config').doc('varieties').set({ list: varieties });
+            }).catch(err => {
+                console.warn("Pull varieties error:", err);
+            });
+
+            // 3. Pull & Push Sampling Orders
+            db.collection('orders').get().then(snapshot => {
+                let updated = false;
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const index = samplingOrders.findIndex(o => o.id === doc.id);
+                    if (index === -1) {
+                        samplingOrders.push(data);
+                        updated = true;
+                    } else {
+                        samplingOrders[index] = data;
+                        updated = true;
+                    }
+                });
+
+                if (updated) {
+                    localStorage.setItem('lg_orders', JSON.stringify(samplingOrders));
+                    renderOrdersTable();
+                    renderKPIs();
+                }
+
+                // Push all local ones
+                samplingOrders.forEach(order => {
+                    db.collection('orders').doc(order.id).set(order);
+                });
+
+                if (!isSilent) {
+                    showToast("Synchronisation globale terminée avec succès !", "success");
+                }
+            }).catch(err => {
+                if (!isSilent) {
+                    showToast("Erreur lors de la synchronisation : " + err.message, "error");
+                }
+            });
+        }
+
+        // Push order to Firestore if active
+        function ensureDBReady() {
+            if (!db && localStorage.getItem('lg_firestore_enabled') === 'true') {
+                initFirestore();
+            }
+        }
+
+        function firestorePushOrder(order) {
+            ensureDBReady();
+            if (db) {
+                db.collection('orders').doc(order.id).set(order).catch(err => {
+                    console.error("Firestore push error:", err);
+                });
+            }
+        }
+
+        // Remove order from Firestore if active
+        function firestoreDeleteOrder(orderId) {
+            ensureDBReady();
+            if (db) {
+                db.collection('orders').doc(orderId).delete().catch(err => {
+                    console.error("Firestore delete error:", err);
+                });
+            }
+        }
+
+        // Push account to Firestore if active
+        function firestorePushAccount(account) {
+            ensureDBReady();
+            if (db) {
+                db.collection('accounts').doc(account.username.toLowerCase()).set(account).catch(err => {
+                    console.error("Firestore account push error:", err);
+                });
+            }
+        }
+
+        // Delete account from Firestore if active
+        function firestoreDeleteAccount(username) {
+            ensureDBReady();
+            if (db) {
+                db.collection('accounts').doc(username.toLowerCase()).delete().catch(err => {
+                    console.error("Firestore account delete error:", err);
+                });
+            }
+        }
+
+        // Push varieties to Firestore if active
+        function firestorePushVarieties() {
+            ensureDBReady();
+            if (db) {
+                db.collection('config').doc('varieties').set({ list: varieties }).catch(err => {
+                    console.error("Firestore varieties push error:", err);
+                });
+            }
+        }
+
+        function testFirestoreConnection() {
+            const apiKey = document.getElementById('db-api-key').value.trim();
+            const projectId = document.getElementById('db-project-id').value.trim();
+            const appId = document.getElementById('db-app-id').value.trim();
+
+            if (!apiKey || !projectId || !appId) {
+                showToast("Veuillez remplir les champs de configuration pour tester.", "warning");
+                return;
+            }
+
+            showToast("Test de connexion Firestore en cours...", "info");
+
+            try {
+                const testConfig = {
+                    apiKey: apiKey,
+                    authDomain: document.getElementById('db-auth-domain').value.trim(),
+                    projectId: projectId,
+                    appId: appId
+                };
+
+                let testApp;
+                if (!firebase.apps.length) {
+                    testApp = firebase.initializeApp(testConfig);
+                } else {
+                    testApp = firebase.app();
+                }
+
+                const testDb = testApp.firestore();
+                // Test a quick query to confirm permissions/connectivity
+                testDb.collection('orders').limit(1).get().then(() => {
+                    showToast("Connexion Firestore validée ! Accès OK.", "success");
+                }).catch(err => {
+                    console.warn(err);
+                    showToast("Paramètres OK, mais erreur d'accès aux collections : " + err.message, "warning");
+                });
+            } catch (err) {
+                showToast("Échec de connexion : " + err.message, "error");
+            }
         }
 
         // ----------------------------------------------------

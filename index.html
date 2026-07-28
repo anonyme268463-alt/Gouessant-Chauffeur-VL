@@ -2150,17 +2150,24 @@
         let isAdminUnlocked = false;
 
         function unlockAdminPanel() {
-            const pinVal = document.getElementById('admin-pin-input').value;
-            if (pinVal === '0342') {
-                isAdminUnlocked = true;
-                document.getElementById('admin-locked-view').classList.add('hidden');
-                document.getElementById('admin-unlocked-view').classList.remove('hidden');
-                document.getElementById('admin-pin-input').value = "";
-                showToast("Administration déverrouillée avec succès.", "success");
-                renderSettingsContent();
-            } else {
+            const pinInput = document.getElementById('admin-pin-input');
+            const pinVal = pinInput ? pinInput.value.trim() : '';
+
+            if (pinVal !== '0342') {
                 showToast("Code PIN erroné. Veuillez réessayer.", "error");
+                return;
             }
+
+            isAdminUnlocked = true;
+            document.getElementById('admin-locked-view').classList.add('hidden');
+            document.getElementById('admin-unlocked-view').classList.remove('hidden');
+            if (pinInput) pinInput.value = '';
+
+            renderSettingsContent();
+            ensureAdminLogsPanel();
+            startAdminLogsListener();
+            writeAuditLog('ADMIN_DEVERROUILLE', {}).catch(err => console.warn('Log admin:', err));
+            showToast("Administration déverrouillée avec succès.", "success");
         }
 
         function lockAdminPanel() {
@@ -3024,16 +3031,6 @@
             originalDeleteOrderGlobal(id);
         }
 
-        const originalUnlockAdminPanelGlobal = unlockAdminPanel;
-        function unlockAdminPanel() {
-            originalUnlockAdminPanelGlobal();
-            if (isAdminUnlocked) {
-                ensureAdminLogsPanel();
-                startAdminLogsListener();
-                writeAuditLog('ADMIN_DEVERROUILLE', {});
-            }
-        }
-
         function ensureAdminLogsPanel() {
             if (document.getElementById('admin-logs-container')) return;
             const unlocked = document.getElementById('admin-unlocked-view');
@@ -3071,6 +3068,16 @@
         window.addEventListener('DOMContentLoaded', () => {
             initializeDatabase();
             startLiveClock();
+
+            const adminPinInput = document.getElementById('admin-pin-input');
+            if (adminPinInput) {
+                adminPinInput.addEventListener('keydown', event => {
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                        unlockAdminPanel();
+                    }
+                });
+            }
         });
     </script>
 </body>

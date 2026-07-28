@@ -2748,7 +2748,7 @@
 
 
         // ====================================================
-        // GLOBAL FIRESTORE / REALTIME OVERRIDE (2026)
+        // GLOBAL FIRESTORE / REALTIME OVERRIDE (2026) — corrected collection-group permissions
         // Firestore is the single source of truth for accounts and lots.
         // ====================================================
         const GLOBAL_FIREBASE_CONFIG = {
@@ -2901,7 +2901,7 @@
                 }
             }, err => {
                 console.error('Lots realtime:', err);
-                showToast('Lecture temps réel des lots impossible : ' + err.message, 'error');
+                showToast(err.code === 'permission-denied' ? 'Accès aux lots refusé par les règles Firestore. Publiez le fichier firestore-global-corrige.rules dans Firebase.' : 'Lecture temps réel des lots impossible : ' + err.message, 'error');
             });
 
             unsubscribeVarietiesRealtime = db.collection('config').doc('varieties').onSnapshot(doc => {

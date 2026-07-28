@@ -149,7 +149,7 @@
                 <button id="tab-login" onclick="switchAuthTab('login')" class="flex-1 py-2.5 text-sm font-semibold rounded-lg text-white bg-emerald-600 shadow-md transition duration-200">
                     <i class="fa-solid fa-sign-in-alt mr-2"></i>Se connecter
                 </button>
-                <button id="tab-register" onclick="switchAuthTab('register')" class="flex-1 py-2.5 text-sm font-medium rounded-lg text-emerald-300 hover:text-white transition duration-200">
+                <button id="tab-register" type="button" class="hidden">
                     <i class="fa-solid fa-user-plus mr-2"></i>Créer un compte
                 </button>
             </div>
@@ -199,7 +199,7 @@
                 </form>
 
                 <!-- REGISTER FORM (Hidden by default) -->
-                <form id="register-form" onsubmit="handleRegister(event)" class="space-y-6 hidden">
+                <form id="register-form" class="hidden" onsubmit="event.preventDefault()">
                     <div>
                         <label for="register-fullname" class="block text-sm font-semibold text-slate-700">Nom Complet Chauffeur</label>
                         <div class="mt-1 relative rounded-md shadow-sm">
@@ -383,10 +383,6 @@
                                     <input type="text" id="form-trajet-custom"
                                         class="block w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm placeholder-slate-400 font-medium"
                                         placeholder="Nom de la nouvelle tournée...">
-                                </div>
-                                <div>
-                                    <label for="form-tour-number" class="block text-[10px] font-bold text-emerald-700 uppercase tracking-wider mb-1">Numéro de tournée <span class="text-slate-400 font-normal">(optionnel)</span></label>
-                                    <input type="text" id="form-tour-number" class="block w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm" placeholder="Exemple : T-042">
                                 </div>
                             </div>
                         </div>
@@ -1289,49 +1285,53 @@
         // ----------------------------------------------------
         // AUTHENTICATION LOGIC (LOGIN / REGISTER)
         // ----------------------------------------------------
-        async function handleLogin(event) {
+        function handleLogin(event) {
             event.preventDefault();
             const usernameInput = document.getElementById('login-username').value.trim().toLowerCase();
             const passwordInput = document.getElementById('login-password').value;
             const rememberMe = document.getElementById('remember-me').checked;
-            let user = accounts.find(acc => acc.username.toLowerCase() === usernameInput);
-            ensureDBReady();
-            if (db) {
-                try {
-                    const snap = await db.collection('users').doc(sanitizeDocId(usernameInput)).get();
-                    if (snap.exists) user = accountFromFirestore(snap.id, snap.data());
-                } catch (err) { console.warn('Firestore indisponible, cache local utilisé.', err); }
-            }
-            if (user && user.active !== false && user.password === passwordInput) {
-                const i = accounts.findIndex(a => a.username.toLowerCase() === usernameInput);
-                if (i >= 0) accounts[i] = user; else accounts.push(user);
-                localStorage.setItem('lg_accounts', JSON.stringify(accounts));
+
+            const user = accounts.find(acc => acc.username.toLowerCase() === usernameInput && acc.password === passwordInput);
+
+            if (user) {
                 currentUser = user;
-                if (rememberMe) { localStorage.setItem('lg_current_user', JSON.stringify(user)); sessionStorage.removeItem('lg_current_user'); }
-                else { sessionStorage.setItem('lg_current_user', JSON.stringify(user)); localStorage.removeItem('lg_current_user'); }
-                firestoreRecordLogin(user);
+                if (rememberMe) {
+                    localStorage.setItem('lg_current_user', JSON.stringify(user));
+                } else {
+                    sessionStorage.setItem('lg_current_user', JSON.stringify(user));
+                }
                 showToast(`Ravi de vous revoir, ${user.fullname} !`, 'success');
                 showDashboard(rememberMe);
-            } else if (user && user.active === false) showToast('Ce compte chauffeur a été désactivé.', 'warning');
-            else showToast('Identifiant ou mot de passe incorrect.', 'error');
+            } else {
+                showToast("Identifiant ou mot de passe incorrect.", "error");
+            }
         }
 
-        async function handleRegister(event) {
+        function handleRegister(event) {
             event.preventDefault();
             const fullname = document.getElementById('register-fullname').value.trim();
             const username = document.getElementById('register-username').value.trim().toLowerCase();
             const password = document.getElementById('register-password').value;
-            if (!/^[a-z0-9._-]{3,40}$/i.test(username)) { showToast("Identifiant invalide (3 à 40 caractères).", 'warning'); return; }
-            if (password.length < 6) { showToast('Le mot de passe doit contenir au moins 6 caractères.', 'warning'); return; }
-            ensureDBReady();
-            if (accounts.some(a => a.username.toLowerCase() === username)) { showToast('Cet identifiant est déjà utilisé.', 'warning'); return; }
-            if (db) { const existing = await db.collection('users').doc(sanitizeDocId(username)).get(); if (existing.exists) { showToast('Cet identifiant est déjà utilisé.', 'warning'); return; } }
-            const now = new Date().toISOString();
-            const newUser = { username, password, fullname, role:'chauffeur', active:true, createdAt:now, updatedAt:now, lastLoginAt:null };
-            accounts.push(newUser); localStorage.setItem('lg_accounts', JSON.stringify(accounts));
-            await firestorePushAccount(newUser);
-            showToast('Compte créé et enregistré dans Firestore !', 'success');
-            switchAuthTab('login'); document.getElementById('login-username').value=username; document.getElementById('login-password').value=password;
+
+            // Check if username already exists
+            if (accounts.some(acc => acc.username.toLowerCase() === username)) {
+                showToast("Cet identifiant est déjà utilisé par un autre chauffeur.", "warning");
+                return;
+            }
+
+            // Create new driver account
+            const newUser = { username, password, fullname };
+            accounts.push(newUser);
+            localStorage.setItem('lg_accounts', JSON.stringify(accounts));
+
+            // Push to Firestore if connected
+            firestorePushAccount(newUser);
+
+            showToast("Compte créé avec succès ! Connectez-vous maintenant.", "success");
+            // Switch back to login tab
+            switchAuthTab('login');
+            document.getElementById('login-username').value = username;
+            document.getElementById('login-password').value = password;
         }
 
         function handleLogout() {
@@ -1719,7 +1719,6 @@
             const trajetSelect = document.getElementById('form-trajet-select').value;
             const trajetCustom = document.getElementById('form-trajet-custom').value.trim();
             const trajet = trajetSelect === '__NEW__' ? trajetCustom : trajetSelect;
-            const tourNumber = document.getElementById('form-tour-number').value.trim();
 
             // Visual quality fields
             const qualityAspect = document.getElementById('form-quality-aspect').value;
@@ -1740,8 +1739,7 @@
 
                     samplingOrders[index] = {
                         id: orderIdField, lotNumber, variety, bacsCount, weight, producer, pickingCity, pickingAddress, driver, datetime, status, comment,
-                        trajet, tourNumber, qualityAspect, qualityGreening, qualityScab, qualityScurf, qualityDamage, qualityRot,
-                        createdAt: oldOrder.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString(), createdBy: oldOrder.createdBy || currentUser?.username || ''
+                        trajet, qualityAspect, qualityGreening, qualityScab, qualityScurf, qualityDamage, qualityRot
                     };
                     targetOrder = samplingOrders[index];
 
@@ -1757,8 +1755,7 @@
                 const newOrder = {
                     id: 'order-' + Date.now(),
                     lotNumber, variety, bacsCount, weight, producer, pickingCity, pickingAddress, driver, datetime, status, comment,
-                    trajet, tourNumber, qualityAspect, qualityGreening, qualityScab, qualityScurf, qualityDamage, qualityRot,
-                    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), createdBy: currentUser?.username || ''
+                    trajet, qualityAspect, qualityGreening, qualityScab, qualityScurf, qualityDamage, qualityRot
                 };
                 samplingOrders.push(newOrder);
                 targetOrder = newOrder;
@@ -1790,7 +1787,6 @@
 
             // Clean lot number for display
             document.getElementById('form-lot-number').value = order.lotNumber;
-            document.getElementById('form-tour-number').value = order.tourNumber || '';
 
             // Setup variety selection
             const varietyDropdown = document.getElementById('form-variety');
@@ -1864,7 +1860,6 @@
             document.getElementById('form-mode-badge').textContent = "Nouveau";
             document.getElementById('form-mode-badge').className = "text-xs bg-emerald-900/60 text-emerald-200 px-2 py-1 rounded font-mono";
             document.getElementById('form-order-id').value = "";
-            document.getElementById('form-tour-number').value = "";
             document.getElementById('sampling-form').reset();
 
             // Setup Trajet select dropdown
@@ -2447,13 +2442,6 @@
         }
 
         // ----------------------------------------------------
-        // FIRESTORE DATA MAPPING
-        function sanitizeDocId(value) { return String(value || 'inconnu').trim().replace(/[\/]/g, '_'); }
-        function accountToFirestore(a) { return {'Identifiant':a.username,'Nom Complet':a.fullname,'Mot de passe':a.password,'Rôle':a.role||'chauffeur','Actif':a.active!==false,'Créé le':a.createdAt||new Date().toISOString(),'Dernière modification':a.updatedAt||new Date().toISOString(),'Dernière connexion':a.lastLoginAt||null}; }
-        function accountFromFirestore(id,d) { return {username:d['Identifiant']||d.username||id,fullname:d['Nom Complet']||d.fullname||'',password:d['Mot de passe']||d.password||'',role:d['Rôle']||d.role||'chauffeur',active:d['Actif']!==false,createdAt:d['Créé le']||d.createdAt||null,updatedAt:d['Dernière modification']||d.updatedAt||null,lastLoginAt:d['Dernière connexion']||d.lastLoginAt||null}; }
-        function orderToFirestore(o) { return {'Adresse':o.pickingAddress||'','Ville de picking':o.pickingCity||'','Aspect':o.qualityAspect||'Non renseigné','Bacs':Number(o.bacsCount)||0,'Blessures/Défauts':o.qualityDamage||'Non renseigné','Date de prélèvement':o.datetime||'','Exploitant':o.producer||'','Fait par':o.driver||'','Identifiant chauffeur':o.createdBy||currentUser?.username||'','Gale Argentée':o.qualityScurf||'Non renseigné','Gale Commune':o.qualityScab||'Non renseigné','Numéro de Lot':o.lotNumber||'','Observations':o.comment||'','Poids':Number(o.weight)||0,'Pourriture':o.qualityRot||'Non renseigné','Statut':o.status||'En cours','Variété':o.variety||'','Verdissement':o.qualityGreening||'Non renseigné','Trajet':o.trajet||'Sans trajet','Numéro de tournée':o.tourNumber||'','Créé le':o.createdAt||new Date().toISOString(),'Dernière modification':o.updatedAt||new Date().toISOString()}; }
-        function orderFromFirestore(id,d,t) { return {id,lotNumber:d['Numéro de Lot']||d.lotNumber||'',variety:d['Variété']||d.variety||'',bacsCount:Number(d['Bacs']??d.bacsCount??0),weight:Number(d['Poids']??d.weight??0),producer:d['Exploitant']||d.producer||'',pickingCity:d['Ville de picking']||d.pickingCity||'',pickingAddress:d['Adresse']||d.pickingAddress||'',driver:d['Fait par']||d.driver||'',createdBy:d['Identifiant chauffeur']||d.createdBy||'',datetime:d['Date de prélèvement']||d.datetime||'',status:d['Statut']||d.status||'En cours',comment:d['Observations']||d.comment||'',trajet:d['Trajet']||d.trajet||t||'Sans trajet',tourNumber:d['Numéro de tournée']||d.tourNumber||'',qualityAspect:d['Aspect']||d.qualityAspect||'Non renseigné',qualityGreening:d['Verdissement']||d.qualityGreening||'Non renseigné',qualityScab:d['Gale Commune']||d.qualityScab||'Non renseigné',qualityScurf:d['Gale Argentée']||d.qualityScurf||'Non renseigné',qualityDamage:d['Blessures/Défauts']||d.qualityDamage||'Non renseigné',qualityRot:d['Pourriture']||d.qualityRot||'Non renseigné',createdAt:d['Créé le']||d.createdAt||null,updatedAt:d['Dernière modification']||d.updatedAt||null}; }
-
         // FIRESTORE OPTIMIZED SYNCHRONIZATION SYSTEM (ON-DEMAND)
         // ----------------------------------------------------
         let db = null;
@@ -2544,26 +2532,165 @@
             showToast("Synchronisation globale désactivée.", "info");
         }
 
-        async function syncNowWithFirestore(isSilent = false) {
-            ensureDBReady(); if (!db) { if(!isSilent) showToast("Firestore n'est pas connecté.",'warning'); return; }
-            try {
-                const us=await db.collection('users').get(); us.forEach(doc=>{const a=accountFromFirestore(doc.id,doc.data());const i=accounts.findIndex(x=>x.username.toLowerCase()===a.username.toLowerCase());if(i>=0)accounts[i]=a;else accounts.push(a)});
-                localStorage.setItem('lg_accounts',JSON.stringify(accounts));
-                const vd=await db.collection('config').doc('varieties').get(); if(vd.exists&&Array.isArray(vd.data().list)) varieties=[...new Set([...varieties,...vd.data().list])].sort((a,b)=>a.localeCompare(b,'fr'));
-                localStorage.setItem('lg_varieties',JSON.stringify(varieties)); await firestorePushVarieties();
-                const ls=await db.collectionGroup('Lots').get(); ls.forEach(doc=>{const t=doc.ref.parent.parent?.id||'Sans trajet';const o=orderFromFirestore(doc.id,doc.data(),t);const i=samplingOrders.findIndex(x=>x.id===o.id);if(i>=0)samplingOrders[i]=o;else samplingOrders.push(o)});
-                localStorage.setItem('lg_orders',JSON.stringify(samplingOrders));
-                await Promise.all(accounts.map(firestorePushAccount)); await Promise.all(samplingOrders.map(firestorePushOrder));
-                syncVarietyDropdowns(); renderSettingsContent(); renderOrdersTable(); renderKPIs(); if(!isSilent)showToast('Synchronisation Firestore terminée.','success');
-            } catch(err) { console.error(err); if(!isSilent)showToast('Erreur de synchronisation : '+err.message,'error'); }
+        function syncNowWithFirestore(isSilent = false) {
+            ensureDBReady();
+            if (!db) {
+                if (!isSilent) {
+                    showToast("Firestore n'est pas connecté. Veuillez vérifier votre configuration et l'activer.", "warning");
+                }
+                return;
+            }
+
+            if (!isSilent) {
+                showToast("Synchronisation manuelle en cours (Push/Pull)...", "info");
+            }
+
+            // 1. Pull & Push Driver Accounts
+            db.collection('accounts').get().then(snapshot => {
+                let updated = false;
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const index = accounts.findIndex(acc => acc.username.toLowerCase() === doc.id.toLowerCase());
+                    if (index === -1) {
+                        accounts.push(data);
+                        updated = true;
+                    } else {
+                        accounts[index] = data;
+                        updated = true;
+                    }
+                });
+                if (updated) {
+                    localStorage.setItem('lg_accounts', JSON.stringify(accounts));
+                    renderSettingsContent();
+                }
+
+                // Push local ones to ensure they are on cloud
+                accounts.forEach(acc => {
+                    db.collection('accounts').doc(acc.username.toLowerCase()).set(acc);
+                });
+            }).catch(err => {
+                console.warn("Pull accounts error:", err);
+            });
+
+            // 2. Pull & Push Varieties
+            db.collection('config').doc('varieties').get().then(doc => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    if (data && data.list && Array.isArray(data.list)) {
+                        let updated = false;
+                        data.list.forEach(v => {
+                            if (!varieties.includes(v)) {
+                                varieties.push(v);
+                                updated = true;
+                            }
+                        });
+                        if (updated) {
+                            localStorage.setItem('lg_varieties', JSON.stringify(varieties));
+                            syncVarietyDropdowns();
+                            renderSettingsContent();
+                        }
+                    }
+                }
+                // Push local list
+                db.collection('config').doc('varieties').set({ list: varieties });
+            }).catch(err => {
+                console.warn("Pull varieties error:", err);
+            });
+
+            // 3. Pull & Push Sampling Orders
+            db.collectionGroup('Lots').get().then(snapshot => {
+                let updated = false;
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const index = samplingOrders.findIndex(o => o.id === doc.id);
+                    if (index === -1) {
+                        samplingOrders.push(data);
+                        updated = true;
+                    } else {
+                        samplingOrders[index] = data;
+                        updated = true;
+                    }
+                });
+
+                if (updated) {
+                    localStorage.setItem('lg_orders', JSON.stringify(samplingOrders));
+                    renderOrdersTable();
+                    renderKPIs();
+                }
+
+                // Push all local ones
+                samplingOrders.forEach(order => {
+                    const trajetId = (order.trajet && order.trajet.trim()) ? order.trajet.trim().replace(/\//g, '_') : 'Sans_Trajet';
+                    db.collection('Trajets').doc(trajetId).collection('Lots').doc(order.id).set(order);
+                });
+
+                if (!isSilent) {
+                    showToast("Synchronisation globale terminée avec succès !", "success");
+                }
+            }).catch(err => {
+                if (!isSilent) {
+                    showToast("Erreur lors de la synchronisation : " + err.message, "error");
+                }
+            });
         }
-        function ensureDBReady(){ if(!db&&localStorage.getItem('lg_firestore_enabled')==='true') initFirestore(true); }
-        async function firestorePushOrder(o){ ensureDBReady(); if(!db||!o)return; const name=o.trajet?.trim()||'Sans trajet',id=sanitizeDocId(name),now=new Date().toISOString();o.updatedAt=now;o.createdAt=o.createdAt||now;await db.collection('Trajets').doc(id).set({'Destination':name,'Numéro de tournée':o.tourNumber||'','Dernière modification':now,'Actif':true},{merge:true});await db.collection('Trajets').doc(id).collection('Lots').doc(o.id).set(orderToFirestore(o),{merge:true}); }
-        async function firestoreDeleteOrder(orderId,trajet){ensureDBReady();if(db)await db.collection('Trajets').doc(sanitizeDocId(trajet||'Sans trajet')).collection('Lots').doc(orderId).delete();}
-        async function firestorePushAccount(a){ensureDBReady();if(!db||!a)return;a.updatedAt=new Date().toISOString();a.createdAt=a.createdAt||a.updatedAt;await db.collection('users').doc(sanitizeDocId(a.username.toLowerCase())).set(accountToFirestore(a),{merge:true});}
-        async function firestoreRecordLogin(a){if(!a)return;a.lastLoginAt=new Date().toISOString();a.updatedAt=a.lastLoginAt;localStorage.setItem('lg_accounts',JSON.stringify(accounts));try{await firestorePushAccount(a)}catch(e){console.warn(e)}}
-        async function firestoreDeleteAccount(username){ensureDBReady();if(db)await db.collection('users').doc(sanitizeDocId(username.toLowerCase())).delete();}
-        function firestorePushVarieties(){ensureDBReady();if(db)return db.collection('config').doc('varieties').set({list:varieties,'Dernière modification':new Date().toISOString()},{merge:true});}
+
+        // Push order to Firestore if active
+        function ensureDBReady() {
+            if (!db && localStorage.getItem('lg_firestore_enabled') === 'true') {
+                initFirestore();
+            }
+        }
+
+        function firestorePushOrder(order) {
+            ensureDBReady();
+            if (db) {
+                const trajetId = (order.trajet && order.trajet.trim()) ? order.trajet.trim().replace(/\//g, '_') : 'Sans_Trajet';
+                db.collection('Trajets').doc(trajetId).collection('Lots').doc(order.id).set(order).catch(err => {
+                    console.error("Firestore push error:", err);
+                });
+            }
+        }
+
+        // Remove order from Firestore if active
+        function firestoreDeleteOrder(orderId, trajet) {
+            ensureDBReady();
+            if (db) {
+                const trajetId = (trajet && trajet.trim()) ? trajet.trim().replace(/\//g, '_') : 'Sans_Trajet';
+                db.collection('Trajets').doc(trajetId).collection('Lots').doc(orderId).delete().catch(err => {
+                    console.error("Firestore delete error:", err);
+                });
+            }
+        }
+
+        // Push account to Firestore if active
+        function firestorePushAccount(account) {
+            ensureDBReady();
+            if (db) {
+                db.collection('accounts').doc(account.username.toLowerCase()).set(account).catch(err => {
+                    console.error("Firestore account push error:", err);
+                });
+            }
+        }
+
+        // Delete account from Firestore if active
+        function firestoreDeleteAccount(username) {
+            ensureDBReady();
+            if (db) {
+                db.collection('accounts').doc(username.toLowerCase()).delete().catch(err => {
+                    console.error("Firestore account delete error:", err);
+                });
+            }
+        }
+
+        // Push varieties to Firestore if active
+        function firestorePushVarieties() {
+            ensureDBReady();
+            if (db) {
+                db.collection('config').doc('varieties').set({ list: varieties }).catch(err => {
+                    console.error("Firestore varieties push error:", err);
+                });
+            }
+        }
 
         function testFirestoreConnection() {
             const apiKey = document.getElementById('db-api-key').value.trim();
@@ -2594,7 +2721,7 @@
 
                 const testDb = testApp.firestore();
                 // Test a quick query to confirm permissions/connectivity
-                testDb.collection('users').limit(1).get().then(() => {
+                testDb.collection('orders').limit(1).get().then(() => {
                     showToast("Connexion Firestore validée ! Accès OK.", "success");
                 }).catch(err => {
                     console.warn(err);
@@ -2617,6 +2744,327 @@
                 clockEl.textContent = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) +
                                       ' - ' + now.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
             }, 1000);
+        }
+
+
+        // ====================================================
+        // GLOBAL FIRESTORE / REALTIME OVERRIDE (2026)
+        // Firestore is the single source of truth for accounts and lots.
+        // ====================================================
+        const GLOBAL_FIREBASE_CONFIG = {
+            apiKey: "AIzaSyBIifkoqqrD0TSkWsafDOTzUEodJ4et5MM",
+            authDomain: "data-base-chvl.firebaseapp.com",
+            projectId: "data-base-chvl",
+            storageBucket: "data-base-chvl.firebasestorage.app",
+            messagingSenderId: "692189613451",
+            appId: "1:692189613451:web:d66601c68d1b375502338e",
+            measurementId: "G-SXXR7DJJ3L"
+        };
+
+        let unsubscribeLotsRealtime = null;
+        let unsubscribeUsersRealtime = null;
+        let unsubscribeVarietiesRealtime = null;
+        let unsubscribeLogsRealtime = null;
+
+        function normalizeAccount(data, id = '') {
+            return {
+                username: String(data.username ?? data.Identifiant ?? id).trim().toLowerCase(),
+                password: String(data.password ?? data['Mot de passe'] ?? ''),
+                fullname: String(data.fullname ?? data['Nom Complet'] ?? data.NomComplet ?? '').trim(),
+                role: String(data.role ?? data['Rôle'] ?? 'chauffeur').toLowerCase(),
+                active: data.active ?? data.Actif ?? true
+            };
+        }
+
+        function accountToFirestore(account) {
+            return {
+                Identifiant: account.username,
+                'Nom Complet': account.fullname,
+                'Mot de passe': account.password,
+                'Rôle': account.role || 'chauffeur',
+                Actif: account.active !== false,
+                'Dernière modification': firebase.firestore.FieldValue.serverTimestamp()
+            };
+        }
+
+        function normalizeOrder(data, doc) {
+            const parentTrajet = doc && doc.ref && doc.ref.parent && doc.ref.parent.parent
+                ? doc.ref.parent.parent.id.replace(/_/g, ' ')
+                : '';
+            const dateValue = data.datetime ?? data['Date de prélèvement'] ?? '';
+            let datetime = dateValue;
+            if (dateValue && typeof dateValue.toDate === 'function') {
+                const d = dateValue.toDate();
+                datetime = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+            }
+            return {
+                id: data.id || (doc ? doc.id : ('order-' + Date.now())),
+                lotNumber: data.lotNumber ?? data['Numéro de Lot'] ?? '',
+                variety: data.variety ?? data['Variété'] ?? 'Non renseignée',
+                bacsCount: data.bacsCount ?? data.Bacs ?? '',
+                weight: data.weight ?? data.Poids ?? '',
+                producer: data.producer ?? data.Exploitant ?? '',
+                pickingCity: data.pickingCity ?? data['Ville de picking'] ?? '',
+                pickingAddress: data.pickingAddress ?? data.Adresse ?? '',
+                driver: data.driver ?? data['Fait par'] ?? '',
+                datetime,
+                status: data.status ?? data.Statut ?? 'En cours',
+                comment: data.comment ?? data.Observations ?? '',
+                trajet: data.trajet ?? data.Trajet ?? parentTrajet,
+                tourNumber: data.tourNumber ?? data['Numéro de tournée'] ?? '',
+                qualityAspect: data.qualityAspect ?? data.Aspect ?? 'Non renseigné',
+                qualityGreening: data.qualityGreening ?? data.Verdissement ?? 'Non renseigné',
+                qualityScab: data.qualityScab ?? data['Gale Commune'] ?? 'Non renseigné',
+                qualityScurf: data.qualityScurf ?? data['Gale Argentée'] ?? 'Non renseigné',
+                qualityDamage: data.qualityDamage ?? data['Blessures/Défauts'] ?? 'Non renseigné',
+                qualityRot: data.qualityRot ?? data.Pourriture ?? 'Non renseigné'
+            };
+        }
+
+        function orderToFirestore(order) {
+            return {
+                id: order.id,
+                Trajet: order.trajet || '',
+                'Numéro de Lot': order.lotNumber || '',
+                'Variété': order.variety || 'Non renseignée',
+                Bacs: order.bacsCount === '' ? '' : Number(order.bacsCount),
+                Poids: order.weight === '' ? '' : Number(order.weight),
+                Exploitant: order.producer || '',
+                'Ville de picking': order.pickingCity || '',
+                Adresse: order.pickingAddress || '',
+                'Fait par': order.driver || '',
+                'Identifiant chauffeur': currentUser ? currentUser.username : '',
+                'Date de prélèvement': order.datetime || '',
+                Statut: order.status || 'En cours',
+                Observations: order.comment || '',
+                Aspect: order.qualityAspect || 'Non renseigné',
+                Verdissement: order.qualityGreening || 'Non renseigné',
+                'Gale Commune': order.qualityScab || 'Non renseigné',
+                'Gale Argentée': order.qualityScurf || 'Non renseigné',
+                'Blessures/Défauts': order.qualityDamage || 'Non renseigné',
+                Pourriture: order.qualityRot || 'Non renseigné',
+                'Numéro de tournée': order.tourNumber || '',
+                'Dernière modification': firebase.firestore.FieldValue.serverTimestamp()
+            };
+        }
+
+        async function writeAuditLog(action, details = {}) {
+            if (!db) return;
+            try {
+                await db.collection('Logs').add({
+                    Action: action,
+                    Utilisateur: currentUser ? currentUser.fullname : 'Système / non connecté',
+                    Identifiant: currentUser ? currentUser.username : '',
+                    Date: firebase.firestore.FieldValue.serverTimestamp(),
+                    Details: details,
+                    Navigateur: navigator.userAgent.slice(0, 250)
+                });
+            } catch (err) {
+                console.warn('Impossible d’écrire le journal :', err);
+            }
+        }
+
+        function initFirestore(isSilent = false) {
+            try {
+                if (!firebase.apps.length) firebaseApp = firebase.initializeApp(GLOBAL_FIREBASE_CONFIG);
+                else firebaseApp = firebase.app();
+                db = firebaseApp.firestore();
+                localStorage.setItem('lg_firestore_enabled', 'true');
+                startGlobalRealtimeListeners();
+                if (!isSilent) showToast('Base globale Firestore connectée en temps réel.', 'success');
+            } catch (err) {
+                console.error('Firestore Init Error:', err);
+                showToast('Connexion à Firestore impossible : ' + err.message, 'error');
+            }
+        }
+
+        function startGlobalRealtimeListeners() {
+            if (!db) return;
+            if (unsubscribeUsersRealtime) unsubscribeUsersRealtime();
+            if (unsubscribeLotsRealtime) unsubscribeLotsRealtime();
+            if (unsubscribeVarietiesRealtime) unsubscribeVarietiesRealtime();
+
+            unsubscribeUsersRealtime = db.collection('users').onSnapshot(snapshot => {
+                accounts = snapshot.docs.map(doc => normalizeAccount(doc.data(), doc.id)).filter(a => a.username && a.active !== false);
+                localStorage.setItem('lg_accounts', JSON.stringify(accounts));
+                if (typeof renderSettingsContent === 'function') renderSettingsContent();
+            }, err => console.error('Users realtime:', err));
+
+            unsubscribeLotsRealtime = db.collectionGroup('Lots').onSnapshot(snapshot => {
+                samplingOrders = snapshot.docs.map(doc => normalizeOrder(doc.data(), doc));
+                // Cache only: never push this cache back automatically.
+                localStorage.setItem('lg_orders', JSON.stringify(samplingOrders));
+                if (currentUser) {
+                    renderOrdersTable();
+                    renderKPIs();
+                    syncTrajetDropdown();
+                }
+            }, err => {
+                console.error('Lots realtime:', err);
+                showToast('Lecture temps réel des lots impossible : ' + err.message, 'error');
+            });
+
+            unsubscribeVarietiesRealtime = db.collection('config').doc('varieties').onSnapshot(doc => {
+                if (doc.exists && Array.isArray(doc.data().list)) {
+                    varieties = doc.data().list;
+                    localStorage.setItem('lg_varieties', JSON.stringify(varieties));
+                    syncVarietyDropdowns();
+                    if (typeof renderSettingsContent === 'function') renderSettingsContent();
+                }
+            }, err => console.warn('Variétés realtime:', err));
+        }
+
+        function initializeDatabase() {
+            // Suppression définitive des jeux de données de démonstration.
+            localStorage.removeItem('lg_orders');
+            const cachedVarieties = JSON.parse(localStorage.getItem('lg_varieties') || 'null');
+            varieties = Array.isArray(cachedVarieties) && cachedVarieties.length ? cachedVarieties : [...DEFAULT_VARIETIES];
+            accounts = [];
+            samplingOrders = [];
+
+            // La création publique de compte est désactivée.
+            const registerTab = document.getElementById('tab-register');
+            const registerForm = document.getElementById('register-form');
+            if (registerTab) registerTab.remove();
+            if (registerForm) registerForm.remove();
+            const loginTab = document.getElementById('tab-login');
+            if (loginTab) loginTab.className = 'w-full py-2.5 text-sm font-semibold rounded-lg text-white bg-emerald-600 shadow-md';
+
+            const savedUser = localStorage.getItem('lg_current_user') || sessionStorage.getItem('lg_current_user');
+            if (savedUser) {
+                try { currentUser = JSON.parse(savedUser); showDashboard(!!localStorage.getItem('lg_current_user')); }
+                catch { showAuth(); }
+            } else showAuth();
+            initFirestore(true);
+        }
+
+        async function handleLogin(event) {
+            event.preventDefault();
+            if (!db) initFirestore(true);
+            const username = document.getElementById('login-username').value.trim().toLowerCase();
+            const password = document.getElementById('login-password').value;
+            const rememberMe = document.getElementById('remember-me').checked;
+            try {
+                const direct = await db.collection('users').doc(username).get();
+                let user = direct.exists ? normalizeAccount(direct.data(), direct.id) : null;
+                if (!user) {
+                    const snap = await db.collection('users').where('Identifiant', '==', username).limit(1).get();
+                    if (!snap.empty) user = normalizeAccount(snap.docs[0].data(), snap.docs[0].id);
+                }
+                if (!user || user.active === false || user.password !== password) throw new Error('INVALID_LOGIN');
+                currentUser = user;
+                localStorage.removeItem('lg_current_user');
+                sessionStorage.removeItem('lg_current_user');
+                (rememberMe ? localStorage : sessionStorage).setItem('lg_current_user', JSON.stringify(user));
+                showDashboard(rememberMe);
+                await writeAuditLog('CONNEXION', { resultat: 'succès' });
+                showToast(`Bienvenue, ${user.fullname} !`, 'success');
+            } catch (err) {
+                showToast('Identifiant ou mot de passe incorrect.', 'error');
+            }
+        }
+
+        function handleRegister(event) {
+            event.preventDefault();
+            showToast('La création publique de compte est désactivée. Demandez à un administrateur.', 'warning');
+        }
+
+        async function firestorePushOrder(order) {
+            if (!db) initFirestore(true);
+            const trajetId = (order.trajet && order.trajet.trim()) ? order.trajet.trim().replace(/\//g, '_') : 'Sans_Trajet';
+            const trajetRef = db.collection('Trajets').doc(trajetId);
+            await trajetRef.set({
+                Destination: order.trajet || 'Sans Trajet',
+                'Numéro de tournée': order.tourNumber || '',
+                Actif: true,
+                'Dernière modification': firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+            await trajetRef.collection('Lots').doc(order.id).set(orderToFirestore(order), { merge: true });
+            await writeAuditLog('LOT_ENREGISTRE_OU_MODIFIE', { lotId: order.id, numeroLot: order.lotNumber, trajet: order.trajet });
+        }
+
+        async function firestoreDeleteOrder(orderId, trajet) {
+            if (!db) initFirestore(true);
+            const trajetId = (trajet && trajet.trim()) ? trajet.trim().replace(/\//g, '_') : 'Sans_Trajet';
+            await db.collection('Trajets').doc(trajetId).collection('Lots').doc(orderId).delete();
+            await writeAuditLog('LOT_SUPPRIME', { lotId: orderId, trajet: trajet || 'Sans Trajet' });
+        }
+
+        async function firestorePushAccount(account) {
+            if (!db) initFirestore(true);
+            await db.collection('users').doc(account.username.toLowerCase()).set(accountToFirestore(account), { merge: true });
+            await writeAuditLog('COMPTE_CREE_OU_MODIFIE', { identifiant: account.username, nom: account.fullname });
+        }
+
+        async function firestoreDeleteAccount(username) {
+            if (!db) initFirestore(true);
+            await db.collection('users').doc(username.toLowerCase()).delete();
+            await writeAuditLog('COMPTE_SUPPRIME', { identifiant: username });
+        }
+
+        function syncNowWithFirestore(isSilent = false) {
+            startGlobalRealtimeListeners();
+            if (!isSilent) showToast('La vue temps réel globale est active.', 'success');
+        }
+
+        function testFirestoreConnection() {
+            if (!db) initFirestore(true);
+            db.collection('users').limit(1).get()
+                .then(() => showToast('Connexion Firestore validée.', 'success'))
+                .catch(err => showToast('Erreur Firestore : ' + err.message, 'error'));
+        }
+
+        // Les suppressions de lots exigent le déverrouillage Admin.
+        const originalDeleteOrderGlobal = deleteOrder;
+        function deleteOrder(id) {
+            if (!isAdminUnlocked) {
+                showToast('Suppression réservée à l’administration. Déverrouillez l’onglet Admin.', 'warning');
+                return;
+            }
+            originalDeleteOrderGlobal(id);
+        }
+
+        const originalUnlockAdminPanelGlobal = unlockAdminPanel;
+        function unlockAdminPanel() {
+            originalUnlockAdminPanelGlobal();
+            if (isAdminUnlocked) {
+                ensureAdminLogsPanel();
+                startAdminLogsListener();
+                writeAuditLog('ADMIN_DEVERROUILLE', {});
+            }
+        }
+
+        function ensureAdminLogsPanel() {
+            if (document.getElementById('admin-logs-container')) return;
+            const unlocked = document.getElementById('admin-unlocked-view');
+            if (!unlocked) return;
+            const section = document.createElement('div');
+            section.id = 'admin-logs-container';
+            section.className = 'border-t border-slate-100 pt-5';
+            section.innerHTML = `
+                <div class="flex items-center justify-between mb-2">
+                    <h5 class="text-xs font-bold text-slate-500 uppercase tracking-wider"><i class="fa-solid fa-clock-rotate-left text-emerald-600 mr-1.5"></i>Journal d’activité Firestore</h5>
+                    <span class="text-[10px] text-slate-400">100 dernières actions</span>
+                </div>
+                <div class="overflow-x-auto border border-slate-200 rounded-xl max-h-72 overflow-y-auto">
+                    <table class="min-w-full text-[10px]"><thead class="sticky top-0 bg-slate-100"><tr><th class="p-2 text-left">Date</th><th class="p-2 text-left">Utilisateur</th><th class="p-2 text-left">Action</th><th class="p-2 text-left">Détails</th></tr></thead><tbody id="admin-logs-body"></tbody></table>
+                </div>`;
+            unlocked.appendChild(section);
+        }
+
+        function startAdminLogsListener() {
+            if (!db || !isAdminUnlocked) return;
+            if (unsubscribeLogsRealtime) unsubscribeLogsRealtime();
+            unsubscribeLogsRealtime = db.collection('Logs').orderBy('Date', 'desc').limit(100).onSnapshot(snapshot => {
+                const body = document.getElementById('admin-logs-body');
+                if (!body) return;
+                body.innerHTML = snapshot.docs.map(doc => {
+                    const d = doc.data();
+                    const date = d.Date && d.Date.toDate ? d.Date.toDate().toLocaleString('fr-FR') : 'En cours';
+                    const details = JSON.stringify(d.Details || {}).replace(/</g, '&lt;');
+                    return `<tr class="border-t border-slate-100"><td class="p-2 whitespace-nowrap">${date}</td><td class="p-2">${d.Utilisateur || ''}<br><span class="text-slate-400">${d.Identifiant || ''}</span></td><td class="p-2 font-bold">${d.Action || ''}</td><td class="p-2 font-mono break-all">${details}</td></tr>`;
+                }).join('') || '<tr><td colspan="4" class="p-4 text-center text-slate-400">Aucun log</td></tr>';
+            }, err => console.warn('Logs realtime:', err));
         }
 
         // Initialize App on DOM Load

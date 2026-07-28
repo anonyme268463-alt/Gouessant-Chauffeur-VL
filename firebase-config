@@ -1,0 +1,9 @@
+const firebaseConfig = {
+  apiKey: "AIzaSyBIifkoqqrD0TSkWsafDOTzUEodJ4et5MM",
+  authDomain: "data-base-chvl.firebaseapp.com",
+  projectId: "data-base-chvl",
+  storageBucket: "data-base-chvl.firebasestorage.app",
+  messagingSenderId: "692189613451",
+  appId: "1:692189613451:web:d66601c68d1b375502338e",
+  measurementId: "G-SXXR7DJJ3L"
+};

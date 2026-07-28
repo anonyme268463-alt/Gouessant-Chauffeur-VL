@@ -265,7 +265,7 @@
 
                     <div class="flex items-center gap-4">
                         <!-- Intersession Connection status badge -->
-                        <div class="hidden sm:flex items-center gap-1.5 bg-blue-50 border border-blue-100 px-2.5 py-1.5 rounded-full" title="Intersession active (restaurée)">
+                        <div id="intersession-badge" class="hidden sm:flex items-center gap-1.5 bg-blue-50 border border-blue-100 px-2.5 py-1.5 rounded-full" title="Intersession active (restaurée)">
                             <i class="fa-solid fa-key text-blue-500 text-[10px]"></i>
                             <span class="text-[10px] font-bold text-blue-800">Intersession active</span>
                         </div>
@@ -366,9 +366,37 @@
                         <!-- Hidden ID field for edit mode -->
                         <input type="hidden" id="form-order-id" value="">
 
-                        <!-- Row 1: Lot Number -->
-                        <div>
-                            <label for="form-lot-number" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Numéro de Lot <span class="text-rose-500">*</span></label>
+                        <!-- CATEGORY SECTION: TRAJET / TOURNÉE -->
+                        <div class="p-4 bg-emerald-50/70 border border-emerald-100 rounded-xl space-y-3">
+                            <label class="block text-xs font-bold text-emerald-800 uppercase tracking-wider flex items-center gap-1.5">
+                                <i class="fa-solid fa-route text-emerald-600"></i>
+                                <span>1. Catégorie : Trajet / Tournée</span>
+                            </label>
+                            <div class="grid grid-cols-1 gap-3">
+                                <div>
+                                    <select id="form-trajet-select" onchange="handleTrajetSelectChange(this.value)"
+                                        class="block w-full py-2 px-3 border border-slate-300 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                                        <!-- Will be dynamically populated via JS -->
+                                    </select>
+                                </div>
+                                <div id="custom-trajet-container" class="hidden">
+                                    <input type="text" id="form-trajet-custom"
+                                        class="block w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm placeholder-slate-400 font-medium"
+                                        placeholder="Nom de la nouvelle tournée...">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SUBCATEGORY SECTION: SAMPLES & LOTS -->
+                        <div class="border-t border-slate-100 pt-3 space-y-4">
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                                <i class="fa-solid fa-box-open text-slate-400"></i>
+                                <span>2. Sous-Catégorie : Échantillons & Lots</span>
+                            </label>
+
+                            <!-- Row 1: Lot Number -->
+                            <div>
+                                <label for="form-lot-number" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Numéro de Lot <span class="text-rose-500">*</span></label>
                             <div class="mt-1 relative rounded-lg shadow-sm">
                                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <span class="text-slate-400 text-xs font-bold font-mono">LOT-</span>
@@ -566,13 +594,6 @@
                             </div>
                         </div>
 
-                        <!-- Trajet field -->
-                        <div>
-                            <label for="form-trajet" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Trajet / Tournée (Sous-catégorie)</label>
-                            <input type="text" id="form-trajet"
-                                class="mt-1 block w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm placeholder-slate-400"
-                                placeholder="ex: Tournée Ouest, Ligne Nord...">
-                        </div>
 
                         <!-- Row 6: Comments -->
                         <div>
@@ -580,6 +601,7 @@
                             <textarea id="form-comment" rows="2"
                                 class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm placeholder-slate-400"
                                 placeholder="État sanitaire des pommes de terre, calibrage, présence de terre..."></textarea>
+                        </div>
                         </div>
 
                         <!-- Action Buttons -->
@@ -1145,6 +1167,15 @@
 
         // Initialize state from LocalStorage or Load Defaults
         function initializeDatabase() {
+            // Pre-populate Firestore config from the official firebaseConfig if not exists
+            if (!localStorage.getItem('lg_firestore_api_key')) {
+                localStorage.setItem('lg_firestore_api_key', "AIzaSyBIifkoqqrD0TSkWsafDOTzUEodJ4et5MM");
+                localStorage.setItem('lg_firestore_project_id', "data-base-chvl");
+                localStorage.setItem('lg_firestore_auth_domain', "data-base-chvl.firebaseapp.com");
+                localStorage.setItem('lg_firestore_app_id', "1:692189613451:web:d66601c68d1b375502338e");
+                localStorage.setItem('lg_firestore_enabled', "true");
+            }
+
             // Load Driver Accounts
             if (!localStorage.getItem('lg_accounts')) {
                 localStorage.setItem('lg_accounts', JSON.stringify(DEFAULT_ACCOUNTS));
@@ -1170,10 +1201,14 @@
             const savedUser = localStorage.getItem('lg_current_user') || sessionStorage.getItem('lg_current_user');
             if (savedUser) {
                 currentUser = JSON.parse(savedUser);
-                showDashboard();
+                const isRestored = !!localStorage.getItem('lg_current_user');
+                showDashboard(isRestored);
             } else {
                 showAuth();
             }
+
+            // Establish Firestore Connection Automatically
+            initFirestore(true);
         }
 
         // ----------------------------------------------------
@@ -1185,13 +1220,23 @@
             currentUser = null;
         }
 
-        function showDashboard() {
+        function showDashboard(isRestored = false) {
             document.getElementById('auth-view').classList.add('hidden');
             document.getElementById('dashboard-view').classList.remove('hidden');
 
             // Set header values
             document.getElementById('header-driver-name').textContent = currentUser.fullname;
             document.getElementById('form-driver').value = currentUser.fullname;
+
+            // Intersession badge toggle
+            const badge = document.getElementById('intersession-badge');
+            if (badge) {
+                if (isRestored) {
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
+            }
 
             // Load values to Settings Profile inputs
             document.getElementById('profile-fullname').value = currentUser.fullname;
@@ -1256,7 +1301,7 @@
                     sessionStorage.setItem('lg_current_user', JSON.stringify(user));
                 }
                 showToast(`Ravi de vous revoir, ${user.fullname} !`, 'success');
-                showDashboard();
+                showDashboard(rememberMe);
             } else {
                 showToast("Identifiant ou mot de passe incorrect.", "error");
             }
@@ -1325,6 +1370,9 @@
             // Restore if exists
             formVariety.value = prevFormVal || "";
             filterVariety.value = prevFilterVal || "";
+
+            // Synchronize Trajet dropdown
+            syncTrajetDropdown();
         }
 
         function handleVarietyChange(value) {
@@ -1352,6 +1400,68 @@
             } else {
                 card.classList.add('hidden');
             }
+        }
+
+        function syncTrajetDropdown() {
+            const select = document.getElementById('form-trajet-select');
+            if (!select) return;
+
+            const prevVal = select.value;
+
+            // Get all unique trajets from existing orders (excluding empty/null)
+            const existingTrajets = [...new Set(samplingOrders.map(o => o.trajet).filter(t => t && t.trim()))];
+
+            let html = `<option value="" disabled selected>-- Choisir un trajet --</option>`;
+            existingTrajets.forEach(t => {
+                html += `<option value="${t}">${t}</option>`;
+            });
+            html += `<option value="__NEW__" class="font-bold text-emerald-700">+ Créer un nouveau trajet...</option>`;
+            select.innerHTML = html;
+
+            if (prevVal && Array.from(select.options).some(opt => opt.value === prevVal)) {
+                select.value = prevVal;
+            }
+        }
+
+        function handleTrajetSelectChange(val) {
+            const container = document.getElementById('custom-trajet-container');
+            const customInput = document.getElementById('form-trajet-custom');
+            if (val === '__NEW__') {
+                container.classList.remove('hidden');
+                customInput.setAttribute('required', 'required');
+                customInput.focus();
+            } else {
+                container.classList.add('hidden');
+                customInput.removeAttribute('required');
+                customInput.value = "";
+            }
+        }
+
+        function startAddLotToTrajet(trajetName) {
+            resetForm();
+            const select = document.getElementById('form-trajet-select');
+            const realTrajet = trajetName === 'Sans Trajet' ? '' : trajetName;
+
+            if (!realTrajet) {
+                select.value = '';
+                handleTrajetSelectChange('');
+            } else {
+                // If the trajet is already in dropdown, select it
+                const options = Array.from(select.options).map(o => o.value);
+                if (options.includes(realTrajet)) {
+                    select.value = realTrajet;
+                    handleTrajetSelectChange(realTrajet);
+                } else {
+                    // Create new option on the fly or toggle custom input
+                    select.value = '__NEW__';
+                    handleTrajetSelectChange('__NEW__');
+                    document.getElementById('form-trajet-custom').value = realTrajet;
+                }
+            }
+
+            document.getElementById('sampling-form').scrollIntoView({ behavior: 'smooth' });
+            document.getElementById('form-lot-number').focus();
+            showToast(`Saisie d'un nouvel échantillon pour le trajet : ${trajetName}`, 'info');
         }
 
         function calculateInstantAverage() {
@@ -1401,6 +1511,16 @@
             return `https://waze.com/ul?q=${encodeURIComponent(query)}&navigate=yes`;
         }
 
+        let collapsedTrajets = new Set();
+        function toggleTrajetCollapse(trajetName) {
+            if (collapsedTrajets.has(trajetName)) {
+                collapsedTrajets.delete(trajetName);
+            } else {
+                collapsedTrajets.add(trajetName);
+            }
+            renderOrdersTable();
+        }
+
         function renderOrdersTable() {
             const tbody = document.getElementById('orders-tbody');
             const emptyState = document.getElementById('empty-state');
@@ -1438,83 +1558,128 @@
 
             emptyState.classList.add('hidden');
 
-            let rowsHTML = "";
+            // Group by Trajet
+            const groups = {};
             filtered.forEach(order => {
-                const dateObj = new Date(order.datetime);
-                const formattedDate = dateObj.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' });
-                const formattedTime = dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-
-                const currentStatus = order.status || 'En cours';
-                let statusBadgeClass = 'bg-slate-50 text-slate-800 border-slate-200';
-                if (currentStatus === 'En cours') {
-                    statusBadgeClass = 'bg-slate-100 text-slate-700 border-slate-300';
-                } else if (currentStatus === 'En route vers la prochaine destination') {
-                    statusBadgeClass = 'bg-blue-50 text-blue-700 border-blue-200';
-                } else if (currentStatus === 'En pause') {
-                    statusBadgeClass = 'bg-amber-50 text-amber-700 border-amber-200';
-                } else if (currentStatus === 'Sur le retour') {
-                    statusBadgeClass = 'bg-indigo-50 text-indigo-700 border-indigo-200';
-                } else if (currentStatus === 'Bloqué dans les bouchons') {
-                    statusBadgeClass = 'bg-rose-50 text-rose-700 border-rose-200';
-                } else if (currentStatus === 'Terminé') {
-                    statusBadgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                const trajetName = (order.trajet && order.trajet.trim()) ? order.trajet.trim() : 'Sans Trajet';
+                if (!groups[trajetName]) {
+                    groups[trajetName] = [];
                 }
+                groups[trajetName].push(order);
+            });
 
-                // Navigation URLs if address available
-                const hasNav = order.pickingCity || order.pickingAddress;
-                const gMapsLink = hasNav ? getMapUrl(order.pickingCity, order.pickingAddress) : null;
-                const wazeLink = hasNav ? getWazeUrl(order.pickingCity, order.pickingAddress) : null;
+            const sortedGroupNames = Object.keys(groups).sort((a, b) => {
+                if (a === 'Sans Trajet') return 1;
+                if (b === 'Sans Trajet') return -1;
+                return a.localeCompare(b);
+            });
+
+            let rowsHTML = "";
+            sortedGroupNames.forEach(trajetName => {
+                const groupLots = groups[trajetName];
+                const isCollapsed = collapsedTrajets.has(trajetName);
+                const chevronIcon = isCollapsed ? 'fa-chevron-right' : 'fa-chevron-down';
 
                 rowsHTML += `
-                    <tr class="hover:bg-slate-50/70 transition duration-150">
-                        <td class="px-4 py-3.5 whitespace-nowrap">
-                            <div class="space-y-1">
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold font-mono bg-emerald-100 text-emerald-800">
-                                    LOT-${order.lotNumber}
+                    <tr class="bg-slate-100/80 hover:bg-slate-200/50 cursor-pointer select-none transition border-y border-slate-200 no-print" onclick="toggleTrajetCollapse('${trajetName.replace(/'/g, "\\'")}')">
+                        <td colspan="6" class="px-4 py-2.5 text-xs font-bold text-slate-700">
+                            <div class="flex items-center justify-between">
+                                <span class="flex items-center gap-2">
+                                    <i class="fa-solid ${chevronIcon} text-slate-400 text-[10px]"></i>
+                                    <i class="fa-solid fa-route text-emerald-600"></i>
+                                    <span>Trajet : ${trajetName}</span>
                                 </span>
-                                <span class="block text-[9px] px-1.5 py-0.5 rounded border ${statusBadgeClass} text-center font-bold w-max">
-                                    ${currentStatus}
-                                </span>
+                                <div class="flex items-center gap-2">
+                                    <span class="bg-white/80 px-2 py-0.5 rounded-full text-[10px] text-slate-500 font-semibold border border-slate-200">
+                                        ${groupLots.length} lot(s)
+                                    </span>
+                                    <button onclick="event.stopPropagation(); startAddLotToTrajet('${trajetName.replace(/'/g, "\\'")}')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] px-2 py-1 rounded transition flex items-center gap-1">
+                                        <i class="fa-solid fa-plus text-[8px]"></i> Échantillon
+                                    </button>
+                                </div>
                             </div>
-                        </td>
-                        <td class="px-4 py-3.5">
-                            <div class="text-sm font-semibold text-slate-800">${order.variety}</div>
-                            <div class="text-[10px] text-slate-400 font-medium">Par: ${order.driver || 'Chauffeur'}</div>
-                        </td>
-                        <td class="px-4 py-3.5 text-right font-mono text-sm font-semibold text-slate-700">
-                            ${order.bacsCount}
-                        </td>
-                        <td class="px-4 py-3.5 text-right font-mono text-sm font-bold text-emerald-700">
-                            ${parseFloat(order.weight).toFixed(1)} <span class="text-[10px] font-normal text-slate-400">kg</span>
-                        </td>
-                        <td class="px-4 py-3.5 whitespace-nowrap">
-                            <div class="text-xs font-bold text-slate-700 truncate max-w-[140px]" title="${order.producer}">${order.producer}</div>
-                            ${order.pickingCity ? `<div class="text-[10px] font-semibold text-slate-500 flex items-center gap-1"><i class="fa-solid fa-map-pin text-rose-500"></i> ${order.pickingCity}</div>` : ''}
-                            <div class="text-[10px] text-slate-400 mt-0.5">${formattedDate} &agrave; ${formattedTime}</div>
-                        </td>
-                        <td class="px-4 py-3.5 whitespace-nowrap text-right text-xs font-medium space-x-1">
-                            ${gMapsLink ? `
-                                <a href="${gMapsLink}" target="_blank" class="inline-flex items-center gap-1 bg-slate-100 hover:bg-blue-50 text-blue-600 p-1.5 rounded-lg transition" title="Itinéraire Google Maps">
-                                    <i class="fa-solid fa-map-location-dot"></i>
-                                </a>
-                            ` : ''}
-                            ${wazeLink ? `
-                                <a href="${wazeLink}" target="_blank" class="inline-flex items-center gap-1 bg-slate-100 hover:bg-amber-50 text-amber-600 p-1.5 rounded-lg transition" title="Itinéraire Waze">
-                                    <i class="fa-brands fa-waze"></i>
-                                </a>
-                            ` : ''}
-                            <button onclick="openTicketModal('${order.id}')" class="inline-flex items-center gap-1 bg-slate-100 hover:bg-emerald-50 text-slate-600 hover:text-brand-darkgreen p-1.5 rounded-lg transition" title="Voir / Imprimer le ticket">
-                                <i class="fa-solid fa-receipt"></i>
-                            </button>
-                            <button onclick="loadOrderIntoForm('${order.id}')" class="inline-flex items-center gap-1 bg-slate-100 hover:bg-amber-50 text-slate-600 hover:text-amber-700 p-1.5 rounded-lg transition" title="Modifier le lot">
-                                <i class="fa-solid fa-pen-to-square"></i>
-                            </button>
-                            <button onclick="deleteOrder('${order.id}')" class="inline-flex items-center gap-1 bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 p-1.5 rounded-lg transition" title="Supprimer le lot">
-                                <i class="fa-solid fa-trash-can"></i>
-                            </button>
                         </td>
                     </tr>
                 `;
+
+                if (!isCollapsed) {
+                    groupLots.forEach(order => {
+                        const dateObj = new Date(order.datetime);
+                        const formattedDate = dateObj.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+                        const formattedTime = dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+
+                        const currentStatus = order.status || 'En cours';
+                        let statusBadgeClass = 'bg-slate-50 text-slate-800 border-slate-200';
+                        if (currentStatus === 'En cours') {
+                            statusBadgeClass = 'bg-slate-100 text-slate-700 border-slate-300';
+                        } else if (currentStatus === 'En route vers la prochaine destination') {
+                            statusBadgeClass = 'bg-blue-50 text-blue-700 border-blue-200';
+                        } else if (currentStatus === 'En pause') {
+                            statusBadgeClass = 'bg-amber-50 text-amber-700 border-amber-200';
+                        } else if (currentStatus === 'Sur le retour') {
+                            statusBadgeClass = 'bg-indigo-50 text-indigo-700 border-indigo-200';
+                        } else if (currentStatus === 'Bloqué dans les bouchons') {
+                            statusBadgeClass = 'bg-rose-50 text-rose-700 border-rose-200';
+                        } else if (currentStatus === 'Terminé') {
+                            statusBadgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                        }
+
+                        const hasNav = order.pickingCity || order.pickingAddress;
+                        const gMapsLink = hasNav ? getMapUrl(order.pickingCity, order.pickingAddress) : null;
+                        const wazeLink = hasNav ? getWazeUrl(order.pickingCity, order.pickingAddress) : null;
+
+                        rowsHTML += `
+                            <tr class="hover:bg-slate-50/70 transition duration-150">
+                                <td class="px-4 py-3.5 whitespace-nowrap">
+                                    <div class="space-y-1">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold font-mono bg-emerald-100 text-emerald-800">
+                                            LOT-${order.lotNumber}
+                                        </span>
+                                        <span class="block text-[9px] px-1.5 py-0.5 rounded border ${statusBadgeClass} text-center font-bold w-max">
+                                            ${currentStatus}
+                                        </span>
+                                    </div>
+                                </td>
+                                <td class="px-4 py-3.5">
+                                    <div class="text-sm font-semibold text-slate-800">${order.variety}</div>
+                                    <div class="text-[10px] text-slate-400 font-medium">Par: ${order.driver || 'Chauffeur'}</div>
+                                </td>
+                                <td class="px-4 py-3.5 text-right font-mono text-sm font-semibold text-slate-700">
+                                    ${order.bacsCount}
+                                </td>
+                                <td class="px-4 py-3.5 text-right font-mono text-sm font-bold text-emerald-700">
+                                    ${parseFloat(order.weight).toFixed(1)} <span class="text-[10px] font-normal text-slate-400">kg</span>
+                                </td>
+                                <td class="px-4 py-3.5 whitespace-nowrap">
+                                    <div class="text-xs font-bold text-slate-700 truncate max-w-[140px]" title="${order.producer}">${order.producer}</div>
+                                    ${order.pickingCity ? `<div class="text-[10px] font-semibold text-slate-500 flex items-center gap-1"><i class="fa-solid fa-map-pin text-rose-500"></i> ${order.pickingCity}</div>` : ''}
+                                    <div class="text-[10px] text-slate-400 mt-0.5">${formattedDate} &agrave; ${formattedTime}</div>
+                                </td>
+                                <td class="px-4 py-3.5 whitespace-nowrap text-right text-xs font-medium space-x-1">
+                                    ${gMapsLink ? `
+                                        <a href="${gMapsLink}" target="_blank" class="inline-flex items-center gap-1 bg-slate-100 hover:bg-blue-50 text-blue-600 p-1.5 rounded-lg transition" title="Itinéraire Google Maps">
+                                            <i class="fa-solid fa-map-location-dot"></i>
+                                        </a>
+                                    ` : ''}
+                                    ${wazeLink ? `
+                                        <a href="${wazeLink}" target="_blank" class="inline-flex items-center gap-1 bg-slate-100 hover:bg-amber-50 text-amber-600 p-1.5 rounded-lg transition" title="Itinéraire Waze">
+                                            <i class="fa-brands fa-waze"></i>
+                                        </a>
+                                    ` : ''}
+                                    <button onclick="openTicketModal('${order.id}')" class="inline-flex items-center gap-1 bg-slate-100 hover:bg-emerald-50 text-slate-600 hover:text-brand-darkgreen p-1.5 rounded-lg transition" title="Voir / Imprimer le ticket">
+                                        <i class="fa-solid fa-receipt"></i>
+                                    </button>
+                                    <button onclick="loadOrderIntoForm('${order.id}')" class="inline-flex items-center gap-1 bg-slate-100 hover:bg-amber-50 text-slate-600 hover:text-amber-700 p-1.5 rounded-lg transition" title="Modifier le lot">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </button>
+                                    <button onclick="deleteOrder('${order.id}')" class="inline-flex items-center gap-1 bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 p-1.5 rounded-lg transition" title="Supprimer le lot">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                }
             });
 
             tbody.innerHTML = rowsHTML;
@@ -1550,7 +1715,10 @@
             const datetime = document.getElementById('form-datetime').value;
             const status = document.getElementById('form-status').value;
             const comment = document.getElementById('form-comment').value.trim();
-            const trajet = document.getElementById('form-trajet').value.trim();
+
+            const trajetSelect = document.getElementById('form-trajet-select').value;
+            const trajetCustom = document.getElementById('form-trajet-custom').value.trim();
+            const trajet = trajetSelect === '__NEW__' ? trajetCustom : trajetSelect;
 
             // Visual quality fields
             const qualityAspect = document.getElementById('form-quality-aspect').value;
@@ -1566,11 +1734,20 @@
                 // UPDATE MODE
                 const index = samplingOrders.findIndex(o => o.id === orderIdField);
                 if (index !== -1) {
+                    const oldOrder = samplingOrders[index];
+                    const oldTrajet = oldOrder.trajet;
+
                     samplingOrders[index] = {
                         id: orderIdField, lotNumber, variety, bacsCount, weight, producer, pickingCity, pickingAddress, driver, datetime, status, comment,
                         trajet, qualityAspect, qualityGreening, qualityScab, qualityScurf, qualityDamage, qualityRot
                     };
                     targetOrder = samplingOrders[index];
+
+                    // If trajet changed, delete from the old path in Firestore
+                    if (oldTrajet !== trajet) {
+                        firestoreDeleteOrder(orderIdField, oldTrajet);
+                    }
+
                     showToast("L'échantillon a été mis à jour.", "success");
                 }
             } else {
@@ -1632,6 +1809,28 @@
             document.getElementById('form-status').value = order.status || "En cours";
             document.getElementById('form-comment').value = order.comment;
 
+            // Setup trajet select / custom inputs
+            const selectTrajet = document.getElementById('form-trajet-select');
+            if (order.trajet && Array.from(selectTrajet.options).some(opt => opt.value === order.trajet)) {
+                selectTrajet.value = order.trajet;
+                handleTrajetSelectChange(order.trajet);
+            } else if (order.trajet) {
+                selectTrajet.value = '__NEW__';
+                handleTrajetSelectChange('__NEW__');
+                document.getElementById('form-trajet-custom').value = order.trajet;
+            } else {
+                selectTrajet.value = '';
+                handleTrajetSelectChange('');
+            }
+
+            // Populate quality dropdowns safely
+            document.getElementById('form-quality-aspect').value = order.qualityAspect || "Satisfaisant";
+            document.getElementById('form-quality-greening').value = order.qualityGreening || "Aucun";
+            document.getElementById('form-quality-scab').value = order.qualityScab || "Aucune";
+            document.getElementById('form-quality-scurf').value = order.qualityScurf || "Aucune";
+            document.getElementById('form-quality-damage').value = order.qualityDamage || "Aucun";
+            document.getElementById('form-quality-rot').value = order.qualityRot || "Aucune";
+
             calculateInstantAverage();
 
             // Smooth scroll to form on mobile devices
@@ -1647,7 +1846,7 @@
                 localStorage.setItem('lg_orders', JSON.stringify(samplingOrders));
 
                 // Firestore delete
-                firestoreDeleteOrder(id);
+                firestoreDeleteOrder(id, order.trajet);
 
                 showToast("Échantillon supprimé.", "info");
                 renderOrdersTable();
@@ -1662,6 +1861,10 @@
             document.getElementById('form-mode-badge').className = "text-xs bg-emerald-900/60 text-emerald-200 px-2 py-1 rounded font-mono";
             document.getElementById('form-order-id').value = "";
             document.getElementById('sampling-form').reset();
+
+            // Setup Trajet select dropdown
+            syncTrajetDropdown();
+            handleTrajetSelectChange("");
 
             // Set default status to "En cours"
             document.getElementById('form-status').value = "En cours";
@@ -2283,7 +2486,7 @@
             }
         }
 
-        function initFirestore() {
+        function initFirestore(isSilent = false) {
             const enabled = localStorage.getItem('lg_firestore_enabled') === 'true';
             const apiKey = localStorage.getItem('lg_firestore_api_key');
             const projectId = localStorage.getItem('lg_firestore_project_id');
@@ -2310,13 +2513,17 @@
                 }
 
                 db = firebaseApp.firestore();
-                showToast("Connexion globale Firestore établie.", "success");
+                if (!isSilent) {
+                    showToast("Connexion globale Firestore établie.", "success");
+                }
 
                 // Optimized: Perform single on-demand Push/Pull sync on boot to minimize continuous reads
                 syncNowWithFirestore(true);
             } catch (err) {
                 console.error("Firestore Init Error:", err);
-                showToast("Échec de connexion Firestore. Mode Local actif.", "warning");
+                if (!isSilent) {
+                    showToast("Échec de connexion Firestore. Mode Local actif.", "warning");
+                }
             }
         }
 
@@ -2391,7 +2598,7 @@
             });
 
             // 3. Pull & Push Sampling Orders
-            db.collection('orders').get().then(snapshot => {
+            db.collectionGroup('Lots').get().then(snapshot => {
                 let updated = false;
                 snapshot.forEach(doc => {
                     const data = doc.data();
@@ -2413,7 +2620,8 @@
 
                 // Push all local ones
                 samplingOrders.forEach(order => {
-                    db.collection('orders').doc(order.id).set(order);
+                    const trajetId = (order.trajet && order.trajet.trim()) ? order.trajet.trim().replace(/\//g, '_') : 'Sans_Trajet';
+                    db.collection('Trajets').doc(trajetId).collection('Lots').doc(order.id).set(order);
                 });
 
                 if (!isSilent) {
@@ -2436,17 +2644,19 @@
         function firestorePushOrder(order) {
             ensureDBReady();
             if (db) {
-                db.collection('orders').doc(order.id).set(order).catch(err => {
+                const trajetId = (order.trajet && order.trajet.trim()) ? order.trajet.trim().replace(/\//g, '_') : 'Sans_Trajet';
+                db.collection('Trajets').doc(trajetId).collection('Lots').doc(order.id).set(order).catch(err => {
                     console.error("Firestore push error:", err);
                 });
             }
         }
 
         // Remove order from Firestore if active
-        function firestoreDeleteOrder(orderId) {
+        function firestoreDeleteOrder(orderId, trajet) {
             ensureDBReady();
             if (db) {
-                db.collection('orders').doc(orderId).delete().catch(err => {
+                const trajetId = (trajet && trajet.trim()) ? trajet.trim().replace(/\//g, '_') : 'Sans_Trajet';
+                db.collection('Trajets').doc(trajetId).collection('Lots').doc(orderId).delete().catch(err => {
                     console.error("Firestore delete error:", err);
                 });
             }

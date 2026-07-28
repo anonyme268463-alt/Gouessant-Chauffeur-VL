@@ -1837,7 +1837,7 @@
             document.getElementById('sampling-form').scrollIntoView({ behavior: 'smooth' });
         }
 
-        function deleteOrder(id) {
+        async function deleteOrderCore(id) {
             const order = samplingOrders.find(o => o.id === id);
             if (!order) return;
 
@@ -3022,13 +3022,20 @@
         }
 
         // Les suppressions de lots exigent le déverrouillage Admin.
-        const originalDeleteOrderGlobal = deleteOrder;
-        function deleteOrder(id) {
+        // Appelle explicitement la fonction cœur pour éviter toute récursion
+        // causée par les déclarations de fonctions portant le même nom.
+        async function deleteOrder(id) {
             if (!isAdminUnlocked) {
                 showToast('Suppression réservée à l’administration. Déverrouillez l’onglet Admin.', 'warning');
                 return;
             }
-            originalDeleteOrderGlobal(id);
+
+            try {
+                await deleteOrderCore(id);
+            } catch (error) {
+                console.error('Erreur suppression du lot :', error);
+                showToast('Impossible de supprimer le lot : ' + (error.message || error), 'error');
+            }
         }
 
         function ensureAdminLogsPanel() {

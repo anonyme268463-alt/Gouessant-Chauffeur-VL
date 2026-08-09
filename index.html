@@ -144,17 +144,14 @@
         </div>
 
         <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md px-4 sm:px-0">
-            <!-- Tabs for Login / Register -->
-            <div class="flex rounded-t-xl bg-emerald-900/40 p-1 mb-[-1px] backdrop-blur-md border border-emerald-700/30 border-b-0">
-                <button id="tab-login" onclick="switchAuthTab('login')" class="flex-1 py-2.5 text-sm font-semibold rounded-lg text-white bg-emerald-600 shadow-md transition duration-200">
-                    <i class="fa-solid fa-sign-in-alt mr-2"></i>Se connecter
-                </button>
-                <button id="tab-register" type="button" class="hidden">
-                    <i class="fa-solid fa-user-plus mr-2"></i>Créer un compte
-                </button>
-            </div>
-
-            <div class="bg-white py-8 px-4 shadow-2xl rounded-b-xl sm:px-10 border border-emerald-500/10 backdrop-blur-lg">
+            <div class="bg-white py-8 px-4 shadow-2xl rounded-xl sm:px-10 border border-emerald-500/10 backdrop-blur-lg">
+                <div class="mb-6 text-center border-b pb-4 border-slate-100">
+                    <h3 class="text-xl font-bold text-slate-800 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-lock text-emerald-600"></i>
+                        <span>Espace Connexion</span>
+                    </h3>
+                    <p class="text-xs text-slate-400 mt-1">Saisissez vos identifiants pour accéder à l'échantillonnage</p>
+                </div>
                 <!-- LOGIN FORM -->
                 <form id="login-form" onsubmit="handleLogin(event)" class="space-y-6">
                     <div>
@@ -198,53 +195,6 @@
                     </div>
                 </form>
 
-                <!-- REGISTER FORM (Hidden by default) -->
-                <form id="register-form" class="hidden" onsubmit="event.preventDefault()">
-                    <div>
-                        <label for="register-fullname" class="block text-sm font-semibold text-slate-700">Nom Complet Chauffeur</label>
-                        <div class="mt-1 relative rounded-md shadow-sm">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <i class="fa-solid fa-address-card text-slate-400"></i>
-                            </div>
-                            <input id="register-fullname" name="fullname" type="text" required
-                                class="block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm placeholder-slate-400 transition"
-                                placeholder="Jean Dupont">
-                        </div>
-                    </div>
-
-                    <div>
-                        <label for="register-username" class="block text-sm font-semibold text-slate-700">Identifiant de connexion</label>
-                        <div class="mt-1 relative rounded-md shadow-sm">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <i class="fa-solid fa-user text-slate-400"></i>
-                            </div>
-                            <input id="register-username" name="username" type="text" required autocomplete="username"
-                                class="block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm placeholder-slate-400 transition"
-                                placeholder="jdupont">
-                        </div>
-                    </div>
-
-                    <div>
-                        <label for="register-password" class="block text-sm font-semibold text-slate-700">Mot de passe</label>
-                        <div class="mt-1 relative rounded-md shadow-sm">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <i class="fa-solid fa-lock text-slate-400"></i>
-                            </div>
-                            <input id="register-password" name="password" type="password" required autocomplete="new-password"
-                                class="block w-full pl-10 pr-10 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm placeholder-slate-400 transition"
-                                placeholder="••••••••">
-                            <button type="button" onclick="togglePasswordVisibility('register-password')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600">
-                                <i class="fa-regular fa-eye" id="eye-icon-register-password"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div>
-                        <button type="submit" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-md text-sm font-bold text-white bg-brand-lightgreen hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition duration-150 transform active:scale-[0.98]">
-                            Créer mon compte chauffeur
-                        </button>
-                    </div>
-                </form>
 
             </div>
         </div>
@@ -1250,26 +1200,6 @@
             renderKPIs();
         }
 
-        // Toggle authentication tabs
-        function switchAuthTab(tab) {
-            const tabLogin = document.getElementById('tab-login');
-            const tabRegister = document.getElementById('tab-register');
-            const formLogin = document.getElementById('login-form');
-            const formRegister = document.getElementById('register-form');
-
-            if (tab === 'login') {
-                tabLogin.className = "flex-1 py-2.5 text-sm font-semibold rounded-lg text-white bg-emerald-600 shadow-md transition duration-200";
-                tabRegister.className = "flex-1 py-2.5 text-sm font-medium rounded-lg text-emerald-300 hover:text-white transition duration-200";
-                formLogin.classList.remove('hidden');
-                formRegister.classList.add('hidden');
-            } else {
-                tabRegister.className = "flex-1 py-2.5 text-sm font-semibold rounded-lg text-white bg-emerald-600 shadow-md transition duration-200";
-                tabLogin.className = "flex-1 py-2.5 text-sm font-medium rounded-lg text-emerald-300 hover:text-white transition duration-200";
-                formRegister.classList.remove('hidden');
-                formLogin.classList.add('hidden');
-            }
-        }
-
         function togglePasswordVisibility(fieldId) {
             const input = document.getElementById(fieldId);
             const eyeIcon = document.getElementById('eye-icon-' + fieldId);
@@ -1283,7 +1213,7 @@
         }
 
         // ----------------------------------------------------
-        // AUTHENTICATION LOGIC (LOGIN / REGISTER)
+        // AUTHENTICATION LOGIC (LOGIN)
         // ----------------------------------------------------
         function handleLogin(event) {
             event.preventDefault();
@@ -1305,33 +1235,6 @@
             } else {
                 showToast("Identifiant ou mot de passe incorrect.", "error");
             }
-        }
-
-        function handleRegister(event) {
-            event.preventDefault();
-            const fullname = document.getElementById('register-fullname').value.trim();
-            const username = document.getElementById('register-username').value.trim().toLowerCase();
-            const password = document.getElementById('register-password').value;
-
-            // Check if username already exists
-            if (accounts.some(acc => acc.username.toLowerCase() === username)) {
-                showToast("Cet identifiant est déjà utilisé par un autre chauffeur.", "warning");
-                return;
-            }
-
-            // Create new driver account
-            const newUser = { username, password, fullname };
-            accounts.push(newUser);
-            localStorage.setItem('lg_accounts', JSON.stringify(accounts));
-
-            // Push to Firestore if connected
-            firestorePushAccount(newUser);
-
-            showToast("Compte créé avec succès ! Connectez-vous maintenant.", "success");
-            // Switch back to login tab
-            switchAuthTab('login');
-            document.getElementById('login-username').value = username;
-            document.getElementById('login-password').value = password;
         }
 
         function handleLogout() {

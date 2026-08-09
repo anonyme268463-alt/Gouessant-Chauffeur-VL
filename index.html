@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Le Gouessant - Échantillonnage Chauffeur VL</title>
     <link rel="icon" type="image/png" href="./logo.png">
+    <!-- Firebase App and Firestore SDKs (Compat versions for ease of vanilla integration) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -211,6 +214,12 @@
                     </div>
 
                     <div class="flex items-center gap-4">
+                        <!-- Intersession Connection status badge -->
+                        <div id="intersession-badge" class="hidden sm:flex items-center gap-1.5 bg-blue-50 border border-blue-100 px-2.5 py-1.5 rounded-full" title="Intersession active (restaurée)">
+                            <i class="fa-solid fa-key text-blue-500 text-[10px]"></i>
+                            <span class="text-[10px] font-bold text-blue-800">Intersession active</span>
+                        </div>
+
                         <!-- Driver welcome badge -->
                         <div class="flex items-center gap-2 bg-emerald-50 border border-emerald-100 px-3 py-1.5 rounded-full">
                             <div class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
@@ -307,9 +316,37 @@
                         <!-- Hidden ID field for edit mode -->
                         <input type="hidden" id="form-order-id" value="">
 
-                        <!-- Row 1: Lot Number -->
-                        <div>
-                            <label for="form-lot-number" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Numéro de Lot <span class="text-rose-500">*</span></label>
+                        <!-- CATEGORY SECTION: TRAJET / TOURNÉE -->
+                        <div class="p-4 bg-emerald-50/70 border border-emerald-100 rounded-xl space-y-3">
+                            <label class="block text-xs font-bold text-emerald-800 uppercase tracking-wider flex items-center gap-1.5">
+                                <i class="fa-solid fa-route text-emerald-600"></i>
+                                <span>1. Catégorie : Trajet / Tournée</span>
+                            </label>
+                            <div class="grid grid-cols-1 gap-3">
+                                <div>
+                                    <select id="form-trajet-select" onchange="handleTrajetSelectChange(this.value)"
+                                        class="block w-full py-2 px-3 border border-slate-300 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                                        <!-- Will be dynamically populated via JS -->
+                                    </select>
+                                </div>
+                                <div id="custom-trajet-container" class="hidden">
+                                    <input type="text" id="form-trajet-custom"
+                                        class="block w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm placeholder-slate-400 font-medium"
+                                        placeholder="Nom de la nouvelle tournée...">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SUBCATEGORY SECTION: SAMPLES & LOTS -->
+                        <div class="border-t border-slate-100 pt-3 space-y-4">
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                                <i class="fa-solid fa-box-open text-slate-400"></i>
+                                <span>2. Sous-Catégorie : Échantillons & Lots</span>
+                            </label>
+
+                            <!-- Row 1: Lot Number -->
+                            <div>
+                                <label for="form-lot-number" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Numéro de Lot <span class="text-rose-500">*</span></label>
                             <div class="mt-1 relative rounded-lg shadow-sm">
                                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <span class="text-slate-400 text-xs font-bold font-mono">LOT-</span>
@@ -324,27 +361,40 @@
                         <!-- Row 2: Variety selection with dynamic "Other" field -->
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <label for="form-variety" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Variété <span class="text-rose-500">*</span></label>
-                                <select id="form-variety" required onchange="handleVarietyChange(this.value)"
+                                <label for="form-variety" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Variété <span class="text-slate-400 font-normal">(Optionnel)</span></label>
+                                <select id="form-variety" onchange="handleVarietyChange(this.value)"
                                     class="mt-1 block w-full py-2.5 px-3 border border-slate-300 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
                                     <!-- Dynamic options injected via JS -->
                                 </select>
                             </div>
 
                             <div id="custom-variety-container" class="hidden">
-                                <label for="form-variety-custom" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Préciser variété <span class="text-rose-500">*</span></label>
+                                <label for="form-variety-custom" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Préciser variété <span class="text-slate-400 font-normal">(Optionnel)</span></label>
                                 <input type="text" id="form-variety-custom"
                                     class="mt-1 block w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
                                     placeholder="Nom de variété">
                             </div>
                         </div>
 
+                        <!-- Variety details card -->
+                        <div id="variety-info-card" class="hidden p-3 bg-emerald-50/50 border border-emerald-100 rounded-xl text-xs space-y-1">
+                            <h4 class="font-bold text-emerald-800 flex items-center gap-1.5">
+                                <i class="fa-solid fa-circle-info text-emerald-600"></i>
+                                <span id="info-variety-name">Bintje</span>
+                            </h4>
+                            <div class="grid grid-cols-2 gap-2 text-slate-600 font-medium">
+                                <div><span class="text-slate-400 font-bold">Maturité:</span> <span id="info-variety-maturity">--</span></div>
+                                <div><span class="text-slate-400 font-bold">Chair:</span> <span id="info-variety-flesh">--</span></div>
+                                <div class="col-span-2"><span class="text-slate-400 font-bold">Usages culinaires:</span> <span id="info-variety-usage">--</span></div>
+                            </div>
+                        </div>
+
                         <!-- Row 3: Bacs & Weight -->
                         <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <label for="form-bacs-count" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Nombre de bacs <span class="text-rose-500">*</span></label>
+                                <label for="form-bacs-count" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Nombre de bacs <span class="text-slate-400 font-normal">(Optionnel)</span></label>
                                 <div class="mt-1 relative rounded-lg shadow-sm">
-                                    <input type="number" id="form-bacs-count" required min="1" step="1" oninput="calculateInstantAverage()"
+                                    <input type="number" id="form-bacs-count" min="1" step="1" oninput="calculateInstantAverage()"
                                         class="block w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm font-semibold"
                                         placeholder="1">
                                     <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
@@ -354,9 +404,9 @@
                             </div>
 
                             <div>
-                                <label for="form-weight" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Poids total (kg) <span class="text-rose-500">*</span></label>
+                                <label for="form-weight" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Poids total (kg) <span class="text-slate-400 font-normal">(Optionnel)</span></label>
                                 <div class="mt-1 relative rounded-lg shadow-sm">
-                                    <input type="number" id="form-weight" required min="0.1" step="0.01" oninput="calculateInstantAverage()"
+                                    <input type="number" id="form-weight" min="0.1" step="0.01" oninput="calculateInstantAverage()"
                                         class="block w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm font-semibold"
                                         placeholder="25.5">
                                     <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
@@ -373,8 +423,8 @@
 
                         <!-- Row 4: Producer -->
                         <div>
-                            <label for="form-producer" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Exploitant / Producteur <span class="text-rose-500">*</span></label>
-                            <input type="text" id="form-producer" required
+                            <label for="form-producer" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Exploitant / Producteur <span class="text-slate-400 font-normal">(Optionnel)</span></label>
+                            <input type="text" id="form-producer"
                                 class="mt-1 block w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm placeholder-slate-400"
                                 placeholder="GAEC de la lande, Ferme Martin...">
                         </div>
@@ -382,8 +432,8 @@
                         <!-- Row 4.5: Picking Location (Lieu prenant) -->
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <label for="form-picking-city" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Ville de picking <span class="text-rose-500">*</span></label>
-                                <input type="text" id="form-picking-city" required
+                                <label for="form-picking-city" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Ville de picking <span class="text-slate-400 font-normal">(Optionnel)</span></label>
+                                <input type="text" id="form-picking-city"
                                     class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm placeholder-slate-400"
                                     placeholder="Loudéac, Lamballe...">
                             </div>
@@ -425,12 +475,83 @@
                             </div>
                         </div>
 
+                        <!-- Visual Quality Section -->
+                        <div class="border-t border-slate-100 pt-4 space-y-3">
+                            <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                                <i class="fa-solid fa-eye text-emerald-600"></i>
+                                <span>Qualité Visuelle</span>
+                            </h4>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                <div>
+                                    <label for="form-quality-aspect" class="block text-[10px] font-semibold text-slate-500 uppercase">Aspect Global</label>
+                                    <select id="form-quality-aspect" class="mt-1 block w-full py-1.5 px-2 border border-slate-300 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs">
+                                        <option value="Non renseigné">Non renseigné</option>
+                                        <option value="Excellent">Excellent</option>
+                                        <option value="Satisfaisant">Satisfaisant</option>
+                                        <option value="Moyen">Moyen</option>
+                                        <option value="Médiocre">Médiocre</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="form-quality-greening" class="block text-[10px] font-semibold text-slate-500 uppercase">Verdissement</label>
+                                    <select id="form-quality-greening" class="mt-1 block w-full py-1.5 px-2 border border-slate-300 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs">
+                                        <option value="Non renseigné">Non renseigné</option>
+                                        <option value="Aucun">Aucun</option>
+                                        <option value="Léger">Léger</option>
+                                        <option value="Moyen">Moyen</option>
+                                        <option value="Important">Important</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="form-quality-scab" class="block text-[10px] font-semibold text-slate-500 uppercase">Gale Commune</label>
+                                    <select id="form-quality-scab" class="mt-1 block w-full py-1.5 px-2 border border-slate-300 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs">
+                                        <option value="Non renseigné">Non renseigné</option>
+                                        <option value="Aucune">Aucune</option>
+                                        <option value="Légère">Légère</option>
+                                        <option value="Moyenne">Moyenne</option>
+                                        <option value="Importante">Importante</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="form-quality-scurf" class="block text-[10px] font-semibold text-slate-500 uppercase">Gale Argentée</label>
+                                    <select id="form-quality-scurf" class="mt-1 block w-full py-1.5 px-2 border border-slate-300 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs">
+                                        <option value="Non renseigné">Non renseigné</option>
+                                        <option value="Aucune">Aucune</option>
+                                        <option value="Légère">Légère</option>
+                                        <option value="Moyenne">Moyenne</option>
+                                        <option value="Importante">Importante</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="form-quality-damage" class="block text-[10px] font-semibold text-slate-500 uppercase">Blessures/Défauts</label>
+                                    <select id="form-quality-damage" class="mt-1 block w-full py-1.5 px-2 border border-slate-300 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs">
+                                        <option value="Non renseigné">Non renseigné</option>
+                                        <option value="Aucune">Aucune</option>
+                                        <option value="Légère">Légère</option>
+                                        <option value="Moyenne">Moyenne</option>
+                                        <option value="Importante">Importante</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="form-quality-rot" class="block text-[10px] font-semibold text-slate-500 uppercase">Pourriture</label>
+                                    <select id="form-quality-rot" class="mt-1 block w-full py-1.5 px-2 border border-slate-300 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs">
+                                        <option value="Non renseigné">Non renseigné</option>
+                                        <option value="Aucune">Aucune</option>
+                                        <option value="Présence suspecte">Présence suspecte</option>
+                                        <option value="Avérée">Avérée</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+
                         <!-- Row 6: Comments -->
                         <div>
                             <label for="form-comment" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Observations / Commentaires</label>
                             <textarea id="form-comment" rows="2"
                                 class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm placeholder-slate-400"
                                 placeholder="État sanitaire des pommes de terre, calibrage, présence de terre..."></textarea>
+                        </div>
                         </div>
 
                         <!-- Action Buttons -->
@@ -639,6 +760,19 @@
                                 <span class="block font-bold text-[9px] text-stone-600 uppercase mb-0.5">OBSERVATIONS :</span>
                                 <p class="italic text-stone-600 text-[9px] leading-relaxed whitespace-pre-wrap font-sans" id="ticket-comments">Aucune observation.</p>
                             </div>
+
+                            <!-- Visual quality inside ticket -->
+                            <div class="mt-3 pt-2 border-t border-dashed border-stone-200" id="ticket-quality-container">
+                                <span class="block font-bold text-[9px] text-stone-600 uppercase mb-1">QUALITÉ VISUELLE :</span>
+                                <div class="grid grid-cols-2 gap-x-2 gap-y-1 text-[8px] text-stone-700 font-mono">
+                                    <div>ASPECT: <span class="font-bold text-stone-900" id="ticket-quality-aspect">--</span></div>
+                                    <div>VERDISSEMENT: <span class="font-bold text-stone-900" id="ticket-quality-greening">--</span></div>
+                                    <div>GALE COM.: <span class="font-bold text-stone-900" id="ticket-quality-scab">--</span></div>
+                                    <div>GALE ARG.: <span class="font-bold text-stone-900" id="ticket-quality-scurf">--</span></div>
+                                    <div>BLESSURES: <span class="font-bold text-stone-900" id="ticket-quality-damage">--</span></div>
+                                    <div>POURRITURE: <span class="font-bold text-stone-900" id="ticket-quality-rot">--</span></div>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Barcode placeholder aesthetic -->
@@ -696,13 +830,16 @@
                 <!-- Settings Tabs Menu -->
                 <div class="flex border-b border-slate-200 bg-slate-50">
                     <button id="settings-tab-profile" onclick="switchSettingsTab('profile')" class="flex-1 py-3 text-center text-xs font-bold uppercase tracking-wider border-b-2 border-emerald-600 text-emerald-700">
-                        <i class="fa-solid fa-user-circle mr-1"></i>Mon Profil
+                        <i class="fa-solid fa-user-circle mr-1"></i>Profil
                     </button>
                     <button id="settings-tab-varieties" onclick="switchSettingsTab('varieties')" class="flex-1 py-3 text-center text-xs font-bold uppercase tracking-wider border-b-2 border-transparent text-slate-500 hover:text-slate-800">
                         <i class="fa-solid fa-tags mr-1"></i>Variétés
                     </button>
+                    <button id="settings-tab-firestore" onclick="switchSettingsTab('firestore')" class="flex-1 py-3 text-center text-xs font-bold uppercase tracking-wider border-b-2 border-transparent text-slate-500 hover:text-slate-800">
+                        <i class="fa-solid fa-database mr-1"></i>Firestore
+                    </button>
                     <button id="settings-tab-admin" onclick="switchSettingsTab('admin')" class="flex-1 py-3 text-center text-xs font-bold uppercase tracking-wider border-b-2 border-transparent text-slate-500 hover:text-slate-800">
-                        <i class="fa-solid fa-lock mr-1"></i>Administration PIN
+                        <i class="fa-solid fa-lock mr-1"></i>Admin PIN
                     </button>
                 </div>
 
@@ -751,6 +888,59 @@
                         <!-- Variety badge list -->
                         <div id="settings-varieties-list" class="flex flex-wrap gap-1.5 mt-3">
                             <!-- Badges injected via JS -->
+                        </div>
+                    </div>
+
+                    <!-- TAB 4: Firestore Synchro -->
+                    <div id="settings-panel-firestore" class="space-y-4 hidden">
+                        <h4 class="text-sm font-bold text-slate-800 border-b pb-2">Configuration de la Base de Données Firestore</h4>
+                        <p class="text-xs text-slate-400">Configurez votre base de données Firebase globale pour délocaliser et synchroniser les sessions, variétés et prélèvements.</p>
+
+                        <div class="space-y-3 bg-slate-50 border border-slate-200 rounded-xl p-4">
+                            <div class="flex items-center justify-between pb-2 border-b border-slate-200">
+                                <label class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                                    <i class="fa-solid fa-cloud text-emerald-600"></i>
+                                    <span>Activer la synchronisation globale</span>
+                                </label>
+                                <input type="checkbox" id="firestore-sync-enabled" onchange="toggleFirestoreSync(this.checked)" class="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded cursor-pointer">
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase">API Key (apiKey)</label>
+                                    <input type="text" id="db-api-key" placeholder="AIzaSy..." class="mt-1 w-full px-2.5 py-1.5 border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase">Project ID (projectId)</label>
+                                    <input type="text" id="db-project-id" placeholder="le-gouessant-app" class="mt-1 w-full px-2.5 py-1.5 border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase">Auth Domain (authDomain)</label>
+                                    <input type="text" id="db-auth-domain" placeholder="le-gouessant-app.firebaseapp.com" class="mt-1 w-full px-2.5 py-1.5 border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase">App ID (appId)</label>
+                                    <input type="text" id="db-app-id" placeholder="1:123456789:web:abcdef" class="mt-1 w-full px-2.5 py-1.5 border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                                </div>
+                            </div>
+
+                            <div class="pt-2 flex flex-col gap-2">
+                                <div class="flex gap-2">
+                                    <button onclick="saveFirestoreConfig()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-1.5 px-3 rounded text-xs font-bold transition text-center shadow">
+                                        Sauvegarder la config
+                                    </button>
+                                    <button onclick="testFirestoreConnection()" class="bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 py-1.5 px-3 rounded text-xs font-bold transition">
+                                        Tester la connexion
+                                    </button>
+                                </div>
+                                <div class="border-t border-slate-200 my-1 pt-2">
+                                    <p class="text-[11px] text-slate-500 mb-1.5 font-medium">Pour réduire la consommation quotidienne de lectures (Lectures Firestore), la synchronisation est optimisée pour s'effectuer à la demande :</p>
+                                    <button onclick="syncNowWithFirestore()" class="w-full inline-flex items-center justify-center gap-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white py-2 px-4 rounded-lg text-xs font-bold transition shadow-md">
+                                        <i class="fa-solid fa-arrows-rotate animate-spin-hover"></i>
+                                        <span>Synchroniser maintenant (Push/Pull)</span>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -859,6 +1049,22 @@
     <!-- APPLICATION LOGIC / JAVASCRIPT -->
     <script>
         // ----------------------------------------------------
+        // POTATO VARIETIES DETAILED INFO
+        // ----------------------------------------------------
+        const VARIETY_DETAILS = {
+            'Bintje': { flesh: 'Demi-farineuse', color: 'Jaune clair', maturity: 'Demi-tardive', usage: 'Frites, Purée, Four' },
+            'Charlotte': { flesh: 'Ferme', color: 'Jaune', maturity: 'Demi-précoce', usage: 'Salade, Vapeur, Rissolée' },
+            'Agata': { flesh: 'Tendre (fondante)', color: 'Jaune très clair', maturity: 'Précoce', usage: 'Four, Purée, Vapeur' },
+            'Amandine': { flesh: 'Très ferme', color: 'Jaune pâle', maturity: 'Très précoce', usage: 'Vapeur, Salade, Rissolée' },
+            'Monalisa': { flesh: 'Tendre (polyvalente)', color: 'Jaune', maturity: 'Demi-précoce', usage: 'Four, Purée, Salade' },
+            'Spunta': { flesh: 'Tendre', color: 'Jaune', maturity: 'Demi-précoce', usage: 'Frites, Four, Purée' },
+            'Désirée': { flesh: 'Demi-farineuse', color: 'Rouge (chair jaune)', maturity: 'Demi-tardive', usage: 'Frites, Purée' },
+            'Agria': { flesh: 'Farineuse', color: 'Jaune prononcé', maturity: 'Demi-tardive', usage: 'Frites faites maison, Purée' },
+            'Caesar': { flesh: 'Farineuse', color: 'Jaune', maturity: 'Demi-tardive', usage: 'Frites, Four' },
+            'Victoria': { flesh: 'Tendre', color: 'Jaune', maturity: 'Précoce', usage: 'Frites, Purée, Vapeur' }
+        };
+
+        // ----------------------------------------------------
         // INITIAL DATABASE CONFIG & DEFAULTS
         // ----------------------------------------------------
         const DEFAULT_ACCOUNTS = [
@@ -911,6 +1117,15 @@
 
         // Initialize state from LocalStorage or Load Defaults
         function initializeDatabase() {
+            // Pre-populate Firestore config from the official firebaseConfig if not exists
+            if (!localStorage.getItem('lg_firestore_api_key')) {
+                localStorage.setItem('lg_firestore_api_key', "AIzaSyBIifkoqqrD0TSkWsafDOTzUEodJ4et5MM");
+                localStorage.setItem('lg_firestore_project_id', "data-base-chvl");
+                localStorage.setItem('lg_firestore_auth_domain', "data-base-chvl.firebaseapp.com");
+                localStorage.setItem('lg_firestore_app_id', "1:692189613451:web:d66601c68d1b375502338e");
+                localStorage.setItem('lg_firestore_enabled', "true");
+            }
+
             // Load Driver Accounts
             if (!localStorage.getItem('lg_accounts')) {
                 localStorage.setItem('lg_accounts', JSON.stringify(DEFAULT_ACCOUNTS));
@@ -936,10 +1151,14 @@
             const savedUser = localStorage.getItem('lg_current_user') || sessionStorage.getItem('lg_current_user');
             if (savedUser) {
                 currentUser = JSON.parse(savedUser);
-                showDashboard();
+                const isRestored = !!localStorage.getItem('lg_current_user');
+                showDashboard(isRestored);
             } else {
                 showAuth();
             }
+
+            // Establish Firestore Connection Automatically
+            initFirestore(true);
         }
 
         // ----------------------------------------------------
@@ -951,13 +1170,23 @@
             currentUser = null;
         }
 
-        function showDashboard() {
+        function showDashboard(isRestored = false) {
             document.getElementById('auth-view').classList.add('hidden');
             document.getElementById('dashboard-view').classList.remove('hidden');
 
             // Set header values
             document.getElementById('header-driver-name').textContent = currentUser.fullname;
             document.getElementById('form-driver').value = currentUser.fullname;
+
+            // Intersession badge toggle
+            const badge = document.getElementById('intersession-badge');
+            if (badge) {
+                if (isRestored) {
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
+            }
 
             // Load values to Settings Profile inputs
             document.getElementById('profile-fullname').value = currentUser.fullname;
@@ -1002,7 +1231,7 @@
                     sessionStorage.setItem('lg_current_user', JSON.stringify(user));
                 }
                 showToast(`Ravi de vous revoir, ${user.fullname} !`, 'success');
-                showDashboard();
+                showDashboard(rememberMe);
             } else {
                 showToast("Identifiant ou mot de passe incorrect.", "error");
             }
@@ -1044,11 +1273,15 @@
             // Restore if exists
             formVariety.value = prevFormVal || "";
             filterVariety.value = prevFilterVal || "";
+
+            // Synchronize Trajet dropdown
+            syncTrajetDropdown();
         }
 
         function handleVarietyChange(value) {
             const customContainer = document.getElementById('custom-variety-container');
             const customInput = document.getElementById('form-variety-custom');
+
             if (value === 'Autre') {
                 customContainer.classList.remove('hidden');
                 customInput.setAttribute('required', 'required');
@@ -1057,6 +1290,81 @@
                 customInput.removeAttribute('required');
                 customInput.value = "";
             }
+
+            // Update Variety Information Card
+            const card = document.getElementById('variety-info-card');
+            if (value && value !== 'Autre' && VARIETY_DETAILS[value]) {
+                const details = VARIETY_DETAILS[value];
+                document.getElementById('info-variety-name').textContent = value;
+                document.getElementById('info-variety-maturity').textContent = details.maturity;
+                document.getElementById('info-variety-flesh').textContent = details.flesh;
+                document.getElementById('info-variety-usage').textContent = details.usage;
+                card.classList.remove('hidden');
+            } else {
+                card.classList.add('hidden');
+            }
+        }
+
+        function syncTrajetDropdown() {
+            const select = document.getElementById('form-trajet-select');
+            if (!select) return;
+
+            const prevVal = select.value;
+
+            // Get all unique trajets from existing orders (excluding empty/null)
+            const existingTrajets = [...new Set(samplingOrders.map(o => o.trajet).filter(t => t && t.trim()))];
+
+            let html = `<option value="" disabled selected>-- Choisir un trajet --</option>`;
+            existingTrajets.forEach(t => {
+                html += `<option value="${t}">${t}</option>`;
+            });
+            html += `<option value="__NEW__" class="font-bold text-emerald-700">+ Créer un nouveau trajet...</option>`;
+            select.innerHTML = html;
+
+            if (prevVal && Array.from(select.options).some(opt => opt.value === prevVal)) {
+                select.value = prevVal;
+            }
+        }
+
+        function handleTrajetSelectChange(val) {
+            const container = document.getElementById('custom-trajet-container');
+            const customInput = document.getElementById('form-trajet-custom');
+            if (val === '__NEW__') {
+                container.classList.remove('hidden');
+                customInput.setAttribute('required', 'required');
+                customInput.focus();
+            } else {
+                container.classList.add('hidden');
+                customInput.removeAttribute('required');
+                customInput.value = "";
+            }
+        }
+
+        function startAddLotToTrajet(trajetName) {
+            resetForm();
+            const select = document.getElementById('form-trajet-select');
+            const realTrajet = trajetName === 'Sans Trajet' ? '' : trajetName;
+
+            if (!realTrajet) {
+                select.value = '';
+                handleTrajetSelectChange('');
+            } else {
+                // If the trajet is already in dropdown, select it
+                const options = Array.from(select.options).map(o => o.value);
+                if (options.includes(realTrajet)) {
+                    select.value = realTrajet;
+                    handleTrajetSelectChange(realTrajet);
+                } else {
+                    // Create new option on the fly or toggle custom input
+                    select.value = '__NEW__';
+                    handleTrajetSelectChange('__NEW__');
+                    document.getElementById('form-trajet-custom').value = realTrajet;
+                }
+            }
+
+            document.getElementById('sampling-form').scrollIntoView({ behavior: 'smooth' });
+            document.getElementById('form-lot-number').focus();
+            showToast(`Saisie d'un nouvel échantillon pour le trajet : ${trajetName}`, 'info');
         }
 
         function calculateInstantAverage() {
@@ -1106,6 +1414,16 @@
             return `https://waze.com/ul?q=${encodeURIComponent(query)}&navigate=yes`;
         }
 
+        let collapsedTrajets = new Set();
+        function toggleTrajetCollapse(trajetName) {
+            if (collapsedTrajets.has(trajetName)) {
+                collapsedTrajets.delete(trajetName);
+            } else {
+                collapsedTrajets.add(trajetName);
+            }
+            renderOrdersTable();
+        }
+
         function renderOrdersTable() {
             const tbody = document.getElementById('orders-tbody');
             const emptyState = document.getElementById('empty-state');
@@ -1143,83 +1461,128 @@
 
             emptyState.classList.add('hidden');
 
-            let rowsHTML = "";
+            // Group by Trajet
+            const groups = {};
             filtered.forEach(order => {
-                const dateObj = new Date(order.datetime);
-                const formattedDate = dateObj.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' });
-                const formattedTime = dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-
-                const currentStatus = order.status || 'En cours';
-                let statusBadgeClass = 'bg-slate-50 text-slate-800 border-slate-200';
-                if (currentStatus === 'En cours') {
-                    statusBadgeClass = 'bg-slate-100 text-slate-700 border-slate-300';
-                } else if (currentStatus === 'En route vers la prochaine destination') {
-                    statusBadgeClass = 'bg-blue-50 text-blue-700 border-blue-200';
-                } else if (currentStatus === 'En pause') {
-                    statusBadgeClass = 'bg-amber-50 text-amber-700 border-amber-200';
-                } else if (currentStatus === 'Sur le retour') {
-                    statusBadgeClass = 'bg-indigo-50 text-indigo-700 border-indigo-200';
-                } else if (currentStatus === 'Bloqué dans les bouchons') {
-                    statusBadgeClass = 'bg-rose-50 text-rose-700 border-rose-200';
-                } else if (currentStatus === 'Terminé') {
-                    statusBadgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                const trajetName = (order.trajet && order.trajet.trim()) ? order.trajet.trim() : 'Sans Trajet';
+                if (!groups[trajetName]) {
+                    groups[trajetName] = [];
                 }
+                groups[trajetName].push(order);
+            });
 
-                // Navigation URLs if address available
-                const hasNav = order.pickingCity || order.pickingAddress;
-                const gMapsLink = hasNav ? getMapUrl(order.pickingCity, order.pickingAddress) : null;
-                const wazeLink = hasNav ? getWazeUrl(order.pickingCity, order.pickingAddress) : null;
+            const sortedGroupNames = Object.keys(groups).sort((a, b) => {
+                if (a === 'Sans Trajet') return 1;
+                if (b === 'Sans Trajet') return -1;
+                return a.localeCompare(b);
+            });
+
+            let rowsHTML = "";
+            sortedGroupNames.forEach(trajetName => {
+                const groupLots = groups[trajetName];
+                const isCollapsed = collapsedTrajets.has(trajetName);
+                const chevronIcon = isCollapsed ? 'fa-chevron-right' : 'fa-chevron-down';
 
                 rowsHTML += `
-                    <tr class="hover:bg-slate-50/70 transition duration-150">
-                        <td class="px-4 py-3.5 whitespace-nowrap">
-                            <div class="space-y-1">
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold font-mono bg-emerald-100 text-emerald-800">
-                                    LOT-${order.lotNumber}
+                    <tr class="bg-slate-100/80 hover:bg-slate-200/50 cursor-pointer select-none transition border-y border-slate-200 no-print" onclick="toggleTrajetCollapse('${trajetName.replace(/'/g, "\\'")}')">
+                        <td colspan="6" class="px-4 py-2.5 text-xs font-bold text-slate-700">
+                            <div class="flex items-center justify-between">
+                                <span class="flex items-center gap-2">
+                                    <i class="fa-solid ${chevronIcon} text-slate-400 text-[10px]"></i>
+                                    <i class="fa-solid fa-route text-emerald-600"></i>
+                                    <span>Trajet : ${trajetName}</span>
                                 </span>
-                                <span class="block text-[9px] px-1.5 py-0.5 rounded border ${statusBadgeClass} text-center font-bold w-max">
-                                    ${currentStatus}
-                                </span>
+                                <div class="flex items-center gap-2">
+                                    <span class="bg-white/80 px-2 py-0.5 rounded-full text-[10px] text-slate-500 font-semibold border border-slate-200">
+                                        ${groupLots.length} lot(s)
+                                    </span>
+                                    <button onclick="event.stopPropagation(); startAddLotToTrajet('${trajetName.replace(/'/g, "\\'")}')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] px-2 py-1 rounded transition flex items-center gap-1">
+                                        <i class="fa-solid fa-plus text-[8px]"></i> Échantillon
+                                    </button>
+                                </div>
                             </div>
-                        </td>
-                        <td class="px-4 py-3.5">
-                            <div class="text-sm font-semibold text-slate-800">${order.variety}</div>
-                            <div class="text-[10px] text-slate-400 font-medium">Par: ${order.driver || 'Chauffeur'}</div>
-                        </td>
-                        <td class="px-4 py-3.5 text-right font-mono text-sm font-semibold text-slate-700">
-                            ${order.bacsCount}
-                        </td>
-                        <td class="px-4 py-3.5 text-right font-mono text-sm font-bold text-emerald-700">
-                            ${parseFloat(order.weight).toFixed(1)} <span class="text-[10px] font-normal text-slate-400">kg</span>
-                        </td>
-                        <td class="px-4 py-3.5 whitespace-nowrap">
-                            <div class="text-xs font-bold text-slate-700 truncate max-w-[140px]" title="${order.producer}">${order.producer}</div>
-                            ${order.pickingCity ? `<div class="text-[10px] font-semibold text-slate-500 flex items-center gap-1"><i class="fa-solid fa-map-pin text-rose-500"></i> ${order.pickingCity}</div>` : ''}
-                            <div class="text-[10px] text-slate-400 mt-0.5">${formattedDate} &agrave; ${formattedTime}</div>
-                        </td>
-                        <td class="px-4 py-3.5 whitespace-nowrap text-right text-xs font-medium space-x-1">
-                            ${gMapsLink ? `
-                                <a href="${gMapsLink}" target="_blank" class="inline-flex items-center gap-1 bg-slate-100 hover:bg-blue-50 text-blue-600 p-1.5 rounded-lg transition" title="Itinéraire Google Maps">
-                                    <i class="fa-solid fa-map-location-dot"></i>
-                                </a>
-                            ` : ''}
-                            ${wazeLink ? `
-                                <a href="${wazeLink}" target="_blank" class="inline-flex items-center gap-1 bg-slate-100 hover:bg-amber-50 text-amber-600 p-1.5 rounded-lg transition" title="Itinéraire Waze">
-                                    <i class="fa-brands fa-waze"></i>
-                                </a>
-                            ` : ''}
-                            <button onclick="openTicketModal('${order.id}')" class="inline-flex items-center gap-1 bg-slate-100 hover:bg-emerald-50 text-slate-600 hover:text-brand-darkgreen p-1.5 rounded-lg transition" title="Voir / Imprimer le ticket">
-                                <i class="fa-solid fa-receipt"></i>
-                            </button>
-                            <button onclick="loadOrderIntoForm('${order.id}')" class="inline-flex items-center gap-1 bg-slate-100 hover:bg-amber-50 text-slate-600 hover:text-amber-700 p-1.5 rounded-lg transition" title="Modifier le lot">
-                                <i class="fa-solid fa-pen-to-square"></i>
-                            </button>
-                            <button onclick="deleteOrder('${order.id}')" class="inline-flex items-center gap-1 bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 p-1.5 rounded-lg transition" title="Supprimer le lot">
-                                <i class="fa-solid fa-trash-can"></i>
-                            </button>
                         </td>
                     </tr>
                 `;
+
+                if (!isCollapsed) {
+                    groupLots.forEach(order => {
+                        const dateObj = new Date(order.datetime);
+                        const formattedDate = dateObj.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+                        const formattedTime = dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+
+                        const currentStatus = order.status || 'En cours';
+                        let statusBadgeClass = 'bg-slate-50 text-slate-800 border-slate-200';
+                        if (currentStatus === 'En cours') {
+                            statusBadgeClass = 'bg-slate-100 text-slate-700 border-slate-300';
+                        } else if (currentStatus === 'En route vers la prochaine destination') {
+                            statusBadgeClass = 'bg-blue-50 text-blue-700 border-blue-200';
+                        } else if (currentStatus === 'En pause') {
+                            statusBadgeClass = 'bg-amber-50 text-amber-700 border-amber-200';
+                        } else if (currentStatus === 'Sur le retour') {
+                            statusBadgeClass = 'bg-indigo-50 text-indigo-700 border-indigo-200';
+                        } else if (currentStatus === 'Bloqué dans les bouchons') {
+                            statusBadgeClass = 'bg-rose-50 text-rose-700 border-rose-200';
+                        } else if (currentStatus === 'Terminé') {
+                            statusBadgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                        }
+
+                        const hasNav = order.pickingCity || order.pickingAddress;
+                        const gMapsLink = hasNav ? getMapUrl(order.pickingCity, order.pickingAddress) : null;
+                        const wazeLink = hasNav ? getWazeUrl(order.pickingCity, order.pickingAddress) : null;
+
+                        rowsHTML += `
+                            <tr class="hover:bg-slate-50/70 transition duration-150">
+                                <td class="px-4 py-3.5 whitespace-nowrap">
+                                    <div class="space-y-1">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold font-mono bg-emerald-100 text-emerald-800">
+                                            LOT-${order.lotNumber}
+                                        </span>
+                                        <span class="block text-[9px] px-1.5 py-0.5 rounded border ${statusBadgeClass} text-center font-bold w-max">
+                                            ${currentStatus}
+                                        </span>
+                                    </div>
+                                </td>
+                                <td class="px-4 py-3.5">
+                                    <div class="text-sm font-semibold text-slate-800">${order.variety}</div>
+                                    <div class="text-[10px] text-slate-400 font-medium">Par: ${order.driver || 'Chauffeur'}</div>
+                                </td>
+                                <td class="px-4 py-3.5 text-right font-mono text-sm font-semibold text-slate-700">
+                                    ${order.bacsCount}
+                                </td>
+                                <td class="px-4 py-3.5 text-right font-mono text-sm font-bold text-emerald-700">
+                                    ${parseFloat(order.weight).toFixed(1)} <span class="text-[10px] font-normal text-slate-400">kg</span>
+                                </td>
+                                <td class="px-4 py-3.5 whitespace-nowrap">
+                                    <div class="text-xs font-bold text-slate-700 truncate max-w-[140px]" title="${order.producer}">${order.producer}</div>
+                                    ${order.pickingCity ? `<div class="text-[10px] font-semibold text-slate-500 flex items-center gap-1"><i class="fa-solid fa-map-pin text-rose-500"></i> ${order.pickingCity}</div>` : ''}
+                                    <div class="text-[10px] text-slate-400 mt-0.5">${formattedDate} &agrave; ${formattedTime}</div>
+                                </td>
+                                <td class="px-4 py-3.5 whitespace-nowrap text-right text-xs font-medium space-x-1">
+                                    ${gMapsLink ? `
+                                        <a href="${gMapsLink}" target="_blank" class="inline-flex items-center gap-1 bg-slate-100 hover:bg-blue-50 text-blue-600 p-1.5 rounded-lg transition" title="Itinéraire Google Maps">
+                                            <i class="fa-solid fa-map-location-dot"></i>
+                                        </a>
+                                    ` : ''}
+                                    ${wazeLink ? `
+                                        <a href="${wazeLink}" target="_blank" class="inline-flex items-center gap-1 bg-slate-100 hover:bg-amber-50 text-amber-600 p-1.5 rounded-lg transition" title="Itinéraire Waze">
+                                            <i class="fa-brands fa-waze"></i>
+                                        </a>
+                                    ` : ''}
+                                    <button onclick="openTicketModal('${order.id}')" class="inline-flex items-center gap-1 bg-slate-100 hover:bg-emerald-50 text-slate-600 hover:text-brand-darkgreen p-1.5 rounded-lg transition" title="Voir / Imprimer le ticket">
+                                        <i class="fa-solid fa-receipt"></i>
+                                    </button>
+                                    <button onclick="loadOrderIntoForm('${order.id}')" class="inline-flex items-center gap-1 bg-slate-100 hover:bg-amber-50 text-slate-600 hover:text-amber-700 p-1.5 rounded-lg transition" title="Modifier le lot">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </button>
+                                    <button onclick="deleteOrder('${order.id}')" class="inline-flex items-center gap-1 bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 p-1.5 rounded-lg transition" title="Supprimer le lot">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                }
             });
 
             tbody.innerHTML = rowsHTML;
@@ -1240,44 +1603,75 @@
 
             const varietySelect = document.getElementById('form-variety').value;
             const customVariety = document.getElementById('form-variety-custom').value.trim();
-            const variety = varietySelect === 'Autre' ? customVariety : varietySelect;
+            const variety = varietySelect === 'Autre' ? customVariety : (varietySelect || "Non renseignée");
 
-            const bacsCount = parseInt(document.getElementById('form-bacs-count').value);
-            const weight = parseFloat(document.getElementById('form-weight').value);
-            const producer = document.getElementById('form-producer').value.trim();
-            const pickingCity = document.getElementById('form-picking-city').value.trim();
-            const pickingAddress = document.getElementById('form-picking-address').value.trim();
+            const bacsCountVal = document.getElementById('form-bacs-count').value;
+            const bacsCount = bacsCountVal ? parseInt(bacsCountVal) : "";
+
+            const weightVal = document.getElementById('form-weight').value;
+            const weight = weightVal ? parseFloat(weightVal) : "";
+
+            const producer = document.getElementById('form-producer').value.trim() || "";
+            const pickingCity = document.getElementById('form-picking-city').value.trim() || "";
+            const pickingAddress = document.getElementById('form-picking-address').value.trim() || "";
             const driver = document.getElementById('form-driver').value.trim();
             const datetime = document.getElementById('form-datetime').value;
             const status = document.getElementById('form-status').value;
             const comment = document.getElementById('form-comment').value.trim();
 
-            if (!variety) {
-                showToast("Veuillez sélectionner ou préciser la variété de pommes de terre.", "warning");
-                return;
-            }
+            const trajetSelect = document.getElementById('form-trajet-select').value;
+            const trajetCustom = document.getElementById('form-trajet-custom').value.trim();
+            const trajet = trajetSelect === '__NEW__' ? trajetCustom : trajetSelect;
+
+            // Visual quality fields
+            const qualityAspect = document.getElementById('form-quality-aspect').value;
+            const qualityGreening = document.getElementById('form-quality-greening').value;
+            const qualityScab = document.getElementById('form-quality-scab').value;
+            const qualityScurf = document.getElementById('form-quality-scurf').value;
+            const qualityDamage = document.getElementById('form-quality-damage').value;
+            const qualityRot = document.getElementById('form-quality-rot').value;
+
+            let targetOrder;
 
             if (orderIdField) {
                 // UPDATE MODE
                 const index = samplingOrders.findIndex(o => o.id === orderIdField);
                 if (index !== -1) {
+                    const oldOrder = samplingOrders[index];
+                    const oldTrajet = oldOrder.trajet;
+
                     samplingOrders[index] = {
-                        id: orderIdField, lotNumber, variety, bacsCount, weight, producer, pickingCity, pickingAddress, driver, datetime, status, comment
+                        id: orderIdField, lotNumber, variety, bacsCount, weight, producer, pickingCity, pickingAddress, driver, datetime, status, comment,
+                        trajet, qualityAspect, qualityGreening, qualityScab, qualityScurf, qualityDamage, qualityRot
                     };
+                    targetOrder = samplingOrders[index];
+
+                    // If trajet changed, delete from the old path in Firestore
+                    if (oldTrajet !== trajet) {
+                        firestoreDeleteOrder(orderIdField, oldTrajet);
+                    }
+
                     showToast("L'échantillon a été mis à jour.", "success");
                 }
             } else {
                 // CREATE MODE
                 const newOrder = {
                     id: 'order-' + Date.now(),
-                    lotNumber, variety, bacsCount, weight, producer, pickingCity, pickingAddress, driver, datetime, status, comment
+                    lotNumber, variety, bacsCount, weight, producer, pickingCity, pickingAddress, driver, datetime, status, comment,
+                    trajet, qualityAspect, qualityGreening, qualityScab, qualityScurf, qualityDamage, qualityRot
                 };
                 samplingOrders.push(newOrder);
+                targetOrder = newOrder;
                 showToast("Nouvel échantillonnage enregistré avec succès !", "success");
             }
 
             // Save to localStorage
             localStorage.setItem('lg_orders', JSON.stringify(samplingOrders));
+
+            // Sync with Firestore if connected
+            if (targetOrder) {
+                firestorePushOrder(targetOrder);
+            }
 
             // Reload UI
             resetForm();
@@ -1318,19 +1712,45 @@
             document.getElementById('form-status').value = order.status || "En cours";
             document.getElementById('form-comment').value = order.comment;
 
+            // Setup trajet select / custom inputs
+            const selectTrajet = document.getElementById('form-trajet-select');
+            if (order.trajet && Array.from(selectTrajet.options).some(opt => opt.value === order.trajet)) {
+                selectTrajet.value = order.trajet;
+                handleTrajetSelectChange(order.trajet);
+            } else if (order.trajet) {
+                selectTrajet.value = '__NEW__';
+                handleTrajetSelectChange('__NEW__');
+                document.getElementById('form-trajet-custom').value = order.trajet;
+            } else {
+                selectTrajet.value = '';
+                handleTrajetSelectChange('');
+            }
+
+            // Populate quality dropdowns safely
+            document.getElementById('form-quality-aspect').value = order.qualityAspect || "Satisfaisant";
+            document.getElementById('form-quality-greening').value = order.qualityGreening || "Aucun";
+            document.getElementById('form-quality-scab').value = order.qualityScab || "Aucune";
+            document.getElementById('form-quality-scurf').value = order.qualityScurf || "Aucune";
+            document.getElementById('form-quality-damage').value = order.qualityDamage || "Aucun";
+            document.getElementById('form-quality-rot').value = order.qualityRot || "Aucune";
+
             calculateInstantAverage();
 
             // Smooth scroll to form on mobile devices
             document.getElementById('sampling-form').scrollIntoView({ behavior: 'smooth' });
         }
 
-        function deleteOrder(id) {
+        async function deleteOrderCore(id) {
             const order = samplingOrders.find(o => o.id === id);
             if (!order) return;
 
             if (confirm(`Voulez-vous vraiment supprimer définitivement le lot LOT-${order.lotNumber} ?`)) {
                 samplingOrders = samplingOrders.filter(o => o.id !== id);
                 localStorage.setItem('lg_orders', JSON.stringify(samplingOrders));
+
+                // Firestore delete
+                firestoreDeleteOrder(id, order.trajet);
+
                 showToast("Échantillon supprimé.", "info");
                 renderOrdersTable();
                 renderKPIs();
@@ -1344,6 +1764,10 @@
             document.getElementById('form-mode-badge').className = "text-xs bg-emerald-900/60 text-emerald-200 px-2 py-1 rounded font-mono";
             document.getElementById('form-order-id').value = "";
             document.getElementById('sampling-form').reset();
+
+            // Setup Trajet select dropdown
+            syncTrajetDropdown();
+            handleTrajetSelectChange("");
 
             // Set default status to "En cours"
             document.getElementById('form-status').value = "En cours";
@@ -1372,25 +1796,35 @@
             const formattedDate = dateObj.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) +
                                   ' à ' + dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 
-            const avgWeight = order.bacsCount > 0 ? (order.weight / order.bacsCount) : 0;
+            const hasBacs = order.bacsCount && parseInt(order.bacsCount) > 0;
+            const hasWeight = order.weight && parseFloat(order.weight) > 0;
+            const avgWeight = (hasBacs && hasWeight) ? (parseFloat(order.weight) / parseInt(order.bacsCount)) : 0;
 
-            document.getElementById('ticket-lot-number').textContent = `LOT-${order.lotNumber.toUpperCase()}`;
-            document.getElementById('ticket-variety').textContent = order.variety.toUpperCase();
-            document.getElementById('ticket-producer').textContent = order.producer.toUpperCase();
+            document.getElementById('ticket-lot-number').textContent = `LOT-${(order.lotNumber || '').toUpperCase()}`;
+            document.getElementById('ticket-variety').textContent = (order.variety || "Non renseignée").toUpperCase();
+            document.getElementById('ticket-producer').textContent = (order.producer || "Non renseigné").toUpperCase();
 
             const cityStr = order.pickingCity || "";
             const addrStr = order.pickingAddress || "";
             const locationText = [addrStr, cityStr].filter(Boolean).join(", ");
-            document.getElementById('ticket-location').textContent = (locationText || "--").toUpperCase();
+            document.getElementById('ticket-location').textContent = (locationText || "Non renseigné").toUpperCase();
 
-            document.getElementById('ticket-bacs').textContent = `${order.bacsCount} Bacs`;
-            document.getElementById('ticket-weight').textContent = `${parseFloat(order.weight).toFixed(2)} kg`;
-            document.getElementById('ticket-avg-weight').textContent = `${avgWeight.toFixed(2)} kg`;
+            document.getElementById('ticket-bacs').textContent = order.bacsCount ? `${order.bacsCount} Bacs` : "N/A";
+            document.getElementById('ticket-weight').textContent = order.weight ? `${parseFloat(order.weight).toFixed(2)} kg` : "N/A";
+            document.getElementById('ticket-avg-weight').textContent = avgWeight > 0 ? `${avgWeight.toFixed(2)} kg` : "N/A";
             document.getElementById('ticket-driver').textContent = order.driver;
             document.getElementById('ticket-status').textContent = order.status || "En cours";
             document.getElementById('ticket-date').textContent = formattedDate;
             document.getElementById('ticket-comments').textContent = order.comment || "Aucune observation renseignée.";
-            document.getElementById('ticket-barcode-num').textContent = `*LGB-LOT-${order.lotNumber.toUpperCase()}*`;
+            document.getElementById('ticket-barcode-num').textContent = `*LGB-LOT-${(order.lotNumber || '').toUpperCase()}*`;
+
+            // Populate visual quality on ticket
+            document.getElementById('ticket-quality-aspect').textContent = (order.qualityAspect || "Non renseigné").toUpperCase();
+            document.getElementById('ticket-quality-greening').textContent = (order.qualityGreening || "Non renseigné").toUpperCase();
+            document.getElementById('ticket-quality-scab').textContent = (order.qualityScab || "Non renseigné").toUpperCase();
+            document.getElementById('ticket-quality-scurf').textContent = (order.qualityScurf || "Non renseigné").toUpperCase();
+            document.getElementById('ticket-quality-damage').textContent = (order.qualityDamage || "Non renseigné").toUpperCase();
+            document.getElementById('ticket-quality-rot').textContent = (order.qualityRot || "Non renseigné").toUpperCase();
 
             document.getElementById('ticket-modal').classList.remove('hidden');
         }
@@ -1606,6 +2040,9 @@
                 document.getElementById('header-driver-name').textContent = currentUser.fullname;
                 document.getElementById('form-driver').value = currentUser.fullname;
 
+                // Push to Firestore if active
+                firestorePushAccount(currentUser);
+
                 showToast("Profil chauffeur mis à jour avec succès !", "success");
                 renderSettingsContent();
             } else {
@@ -1616,17 +2053,24 @@
         let isAdminUnlocked = false;
 
         function unlockAdminPanel() {
-            const pinVal = document.getElementById('admin-pin-input').value;
-            if (pinVal === '0342') {
-                isAdminUnlocked = true;
-                document.getElementById('admin-locked-view').classList.add('hidden');
-                document.getElementById('admin-unlocked-view').classList.remove('hidden');
-                document.getElementById('admin-pin-input').value = "";
-                showToast("Administration déverrouillée avec succès.", "success");
-                renderSettingsContent();
-            } else {
+            const pinInput = document.getElementById('admin-pin-input');
+            const pinVal = pinInput ? pinInput.value.trim() : '';
+
+            if (pinVal !== '0342') {
                 showToast("Code PIN erroné. Veuillez réessayer.", "error");
+                return;
             }
+
+            isAdminUnlocked = true;
+            document.getElementById('admin-locked-view').classList.add('hidden');
+            document.getElementById('admin-unlocked-view').classList.remove('hidden');
+            if (pinInput) pinInput.value = '';
+
+            renderSettingsContent();
+            ensureAdminLogsPanel();
+            startAdminLogsListener();
+            writeAuditLog('ADMIN_DEVERROUILLE', {}).catch(err => console.warn('Log admin:', err));
+            showToast("Administration déverrouillée avec succès.", "success");
         }
 
         function lockAdminPanel() {
@@ -1719,6 +2163,9 @@
             accounts.push(newUser);
             localStorage.setItem('lg_accounts', JSON.stringify(accounts));
 
+            // Sync with Firestore if active
+            firestorePushAccount(newUser);
+
             // Reset form
             document.getElementById('admin-create-driver-form').reset();
 
@@ -1764,6 +2211,10 @@
                 }
 
                 localStorage.setItem('lg_accounts', JSON.stringify(accounts));
+
+                // Sync with Firestore if active
+                firestorePushAccount(accounts[accIndex]);
+
                 showToast(`Compte de ${fullnameVal} mis à jour avec succès.`, "success");
                 renderSettingsContent();
             } else {
@@ -1785,6 +2236,9 @@
             localStorage.setItem('lg_varieties', JSON.stringify(varieties));
             input.value = "";
 
+            // Sync with Firestore if active
+            firestorePushVarieties();
+
             showToast(`Variété ${val} ajoutée avec succès.`, "success");
             renderSettingsContent();
             syncVarietyDropdowns();
@@ -1793,6 +2247,10 @@
         function removeVariety(name) {
             varieties = varieties.filter(v => v !== name);
             localStorage.setItem('lg_varieties', JSON.stringify(varieties));
+
+            // Sync with Firestore if active
+            firestorePushVarieties();
+
             showToast(`Variété ${name} retirée.`, "info");
             renderSettingsContent();
             syncVarietyDropdowns();
@@ -1802,6 +2260,10 @@
             if (confirm(`Voulez-vous vraiment supprimer le chauffeur @${username} ?`)) {
                 accounts = accounts.filter(acc => acc.username !== username);
                 localStorage.setItem('lg_accounts', JSON.stringify(accounts));
+
+                // Sync with Firestore if active
+                firestoreDeleteAccount(username);
+
                 showToast(`Compte chauffeur @${username} supprimé.`, "info");
                 renderSettingsContent();
             }
@@ -1890,6 +2352,297 @@
         }
 
         // ----------------------------------------------------
+        // FIRESTORE OPTIMIZED SYNCHRONIZATION SYSTEM (ON-DEMAND)
+        // ----------------------------------------------------
+        let db = null;
+        let firebaseApp = null;
+
+        function loadFirestoreConfigUI() {
+            document.getElementById('firestore-sync-enabled').checked = localStorage.getItem('lg_firestore_enabled') === 'true';
+            document.getElementById('db-api-key').value = localStorage.getItem('lg_firestore_api_key') || "";
+            document.getElementById('db-project-id').value = localStorage.getItem('lg_firestore_project_id') || "";
+            document.getElementById('db-auth-domain').value = localStorage.getItem('lg_firestore_auth_domain') || "";
+            document.getElementById('db-app-id').value = localStorage.getItem('lg_firestore_app_id') || "";
+        }
+
+        function saveFirestoreConfig() {
+            const enabled = document.getElementById('firestore-sync-enabled').checked;
+            const apiKey = document.getElementById('db-api-key').value.trim();
+            const projectId = document.getElementById('db-project-id').value.trim();
+            const authDomain = document.getElementById('db-auth-domain').value.trim();
+            const appId = document.getElementById('db-app-id').value.trim();
+
+            localStorage.setItem('lg_firestore_enabled', enabled ? 'true' : 'false');
+            localStorage.setItem('lg_firestore_api_key', apiKey);
+            localStorage.setItem('lg_firestore_project_id', projectId);
+            localStorage.setItem('lg_firestore_auth_domain', authDomain);
+            localStorage.setItem('lg_firestore_app_id', appId);
+
+            showToast("Configuration Firestore enregistrée !", "success");
+
+            if (enabled) {
+                initFirestore();
+            } else {
+                disconnectFirestore();
+            }
+        }
+
+        function toggleFirestoreSync(enabled) {
+            localStorage.setItem('lg_firestore_enabled', enabled ? 'true' : 'false');
+            if (enabled) {
+                initFirestore();
+            } else {
+                disconnectFirestore();
+            }
+        }
+
+        function initFirestore(isSilent = false) {
+            const enabled = localStorage.getItem('lg_firestore_enabled') === 'true';
+            const apiKey = localStorage.getItem('lg_firestore_api_key');
+            const projectId = localStorage.getItem('lg_firestore_project_id');
+            const authDomain = localStorage.getItem('lg_firestore_auth_domain');
+            const appId = localStorage.getItem('lg_firestore_app_id');
+
+            if (!enabled || !apiKey || !projectId || !appId) {
+                return;
+            }
+
+            try {
+                const firebaseConfig = {
+                    apiKey: apiKey,
+                    authDomain: authDomain,
+                    projectId: projectId,
+                    appId: appId
+                };
+
+                // Initialize Firebase Compat
+                if (!firebase.apps.length) {
+                    firebaseApp = firebase.initializeApp(firebaseConfig);
+                } else {
+                    firebaseApp = firebase.app();
+                }
+
+                db = firebaseApp.firestore();
+                if (!isSilent) {
+                    showToast("Connexion globale Firestore établie.", "success");
+                }
+
+                // Optimized: Perform single on-demand Push/Pull sync on boot to minimize continuous reads
+                syncNowWithFirestore(true);
+            } catch (err) {
+                console.error("Firestore Init Error:", err);
+                if (!isSilent) {
+                    showToast("Échec de connexion Firestore. Mode Local actif.", "warning");
+                }
+            }
+        }
+
+        function disconnectFirestore() {
+            db = null;
+            showToast("Synchronisation globale désactivée.", "info");
+        }
+
+        function syncNowWithFirestore(isSilent = false) {
+            ensureDBReady();
+            if (!db) {
+                if (!isSilent) {
+                    showToast("Firestore n'est pas connecté. Veuillez vérifier votre configuration et l'activer.", "warning");
+                }
+                return;
+            }
+
+            if (!isSilent) {
+                showToast("Synchronisation manuelle en cours (Push/Pull)...", "info");
+            }
+
+            // 1. Pull & Push Driver Accounts
+            db.collection('accounts').get().then(snapshot => {
+                let updated = false;
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const index = accounts.findIndex(acc => acc.username.toLowerCase() === doc.id.toLowerCase());
+                    if (index === -1) {
+                        accounts.push(data);
+                        updated = true;
+                    } else {
+                        accounts[index] = data;
+                        updated = true;
+                    }
+                });
+                if (updated) {
+                    localStorage.setItem('lg_accounts', JSON.stringify(accounts));
+                    renderSettingsContent();
+                }
+
+                // Push local ones to ensure they are on cloud
+                accounts.forEach(acc => {
+                    db.collection('accounts').doc(acc.username.toLowerCase()).set(acc);
+                });
+            }).catch(err => {
+                console.warn("Pull accounts error:", err);
+            });
+
+            // 2. Pull & Push Varieties
+            db.collection('config').doc('varieties').get().then(doc => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    if (data && data.list && Array.isArray(data.list)) {
+                        let updated = false;
+                        data.list.forEach(v => {
+                            if (!varieties.includes(v)) {
+                                varieties.push(v);
+                                updated = true;
+                            }
+                        });
+                        if (updated) {
+                            localStorage.setItem('lg_varieties', JSON.stringify(varieties));
+                            syncVarietyDropdowns();
+                            renderSettingsContent();
+                        }
+                    }
+                }
+                // Push local list
+                db.collection('config').doc('varieties').set({ list: varieties });
+            }).catch(err => {
+                console.warn("Pull varieties error:", err);
+            });
+
+            // 3. Pull & Push Sampling Orders
+            db.collectionGroup('Lots').get().then(snapshot => {
+                let updated = false;
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const index = samplingOrders.findIndex(o => o.id === doc.id);
+                    if (index === -1) {
+                        samplingOrders.push(data);
+                        updated = true;
+                    } else {
+                        samplingOrders[index] = data;
+                        updated = true;
+                    }
+                });
+
+                if (updated) {
+                    localStorage.setItem('lg_orders', JSON.stringify(samplingOrders));
+                    renderOrdersTable();
+                    renderKPIs();
+                }
+
+                // Push all local ones
+                samplingOrders.forEach(order => {
+                    const trajetId = (order.trajet && order.trajet.trim()) ? order.trajet.trim().replace(/\//g, '_') : 'Sans_Trajet';
+                    db.collection('Trajets').doc(trajetId).collection('Lots').doc(order.id).set(order);
+                });
+
+                if (!isSilent) {
+                    showToast("Synchronisation globale terminée avec succès !", "success");
+                }
+            }).catch(err => {
+                if (!isSilent) {
+                    showToast("Erreur lors de la synchronisation : " + err.message, "error");
+                }
+            });
+        }
+
+        // Push order to Firestore if active
+        function ensureDBReady() {
+            if (!db && localStorage.getItem('lg_firestore_enabled') === 'true') {
+                initFirestore();
+            }
+        }
+
+        function firestorePushOrder(order) {
+            ensureDBReady();
+            if (db) {
+                const trajetId = (order.trajet && order.trajet.trim()) ? order.trajet.trim().replace(/\//g, '_') : 'Sans_Trajet';
+                db.collection('Trajets').doc(trajetId).collection('Lots').doc(order.id).set(order).catch(err => {
+                    console.error("Firestore push error:", err);
+                });
+            }
+        }
+
+        // Remove order from Firestore if active
+        function firestoreDeleteOrder(orderId, trajet) {
+            ensureDBReady();
+            if (db) {
+                const trajetId = (trajet && trajet.trim()) ? trajet.trim().replace(/\//g, '_') : 'Sans_Trajet';
+                db.collection('Trajets').doc(trajetId).collection('Lots').doc(orderId).delete().catch(err => {
+                    console.error("Firestore delete error:", err);
+                });
+            }
+        }
+
+        // Push account to Firestore if active
+        function firestorePushAccount(account) {
+            ensureDBReady();
+            if (db) {
+                db.collection('accounts').doc(account.username.toLowerCase()).set(account).catch(err => {
+                    console.error("Firestore account push error:", err);
+                });
+            }
+        }
+
+        // Delete account from Firestore if active
+        function firestoreDeleteAccount(username) {
+            ensureDBReady();
+            if (db) {
+                db.collection('accounts').doc(username.toLowerCase()).delete().catch(err => {
+                    console.error("Firestore account delete error:", err);
+                });
+            }
+        }
+
+        // Push varieties to Firestore if active
+        function firestorePushVarieties() {
+            ensureDBReady();
+            if (db) {
+                db.collection('config').doc('varieties').set({ list: varieties }).catch(err => {
+                    console.error("Firestore varieties push error:", err);
+                });
+            }
+        }
+
+        function testFirestoreConnection() {
+            const apiKey = document.getElementById('db-api-key').value.trim();
+            const projectId = document.getElementById('db-project-id').value.trim();
+            const appId = document.getElementById('db-app-id').value.trim();
+
+            if (!apiKey || !projectId || !appId) {
+                showToast("Veuillez remplir les champs de configuration pour tester.", "warning");
+                return;
+            }
+
+            showToast("Test de connexion Firestore en cours...", "info");
+
+            try {
+                const testConfig = {
+                    apiKey: apiKey,
+                    authDomain: document.getElementById('db-auth-domain').value.trim(),
+                    projectId: projectId,
+                    appId: appId
+                };
+
+                let testApp;
+                if (!firebase.apps.length) {
+                    testApp = firebase.initializeApp(testConfig);
+                } else {
+                    testApp = firebase.app();
+                }
+
+                const testDb = testApp.firestore();
+                // Test a quick query to confirm permissions/connectivity
+                testDb.collection('orders').limit(1).get().then(() => {
+                    showToast("Connexion Firestore validée ! Accès OK.", "success");
+                }).catch(err => {
+                    console.warn(err);
+                    showToast("Paramètres OK, mais erreur d'accès aux collections : " + err.message, "warning");
+                });
+            } catch (err) {
+                showToast("Échec de connexion : " + err.message, "error");
+            }
+        }
+
+        // ----------------------------------------------------
         // SYSTEM RUNTIME CLOCK
         // ----------------------------------------------------
         function startLiveClock() {
@@ -1903,10 +2656,338 @@
             }, 1000);
         }
 
+
+        // ====================================================
+        // GLOBAL FIRESTORE / REALTIME OVERRIDE (2026) — corrected collection-group permissions
+        // Firestore is the single source of truth for accounts and lots.
+        // ====================================================
+        const GLOBAL_FIREBASE_CONFIG = {
+            apiKey: "AIzaSyBIifkoqqrD0TSkWsafDOTzUEodJ4et5MM",
+            authDomain: "data-base-chvl.firebaseapp.com",
+            projectId: "data-base-chvl",
+            storageBucket: "data-base-chvl.firebasestorage.app",
+            messagingSenderId: "692189613451",
+            appId: "1:692189613451:web:d66601c68d1b375502338e",
+            measurementId: "G-SXXR7DJJ3L"
+        };
+
+        let unsubscribeLotsRealtime = null;
+        let unsubscribeUsersRealtime = null;
+        let unsubscribeVarietiesRealtime = null;
+        let unsubscribeLogsRealtime = null;
+
+        function normalizeAccount(data, id = '') {
+            return {
+                username: String(data.username ?? data.Identifiant ?? id).trim().toLowerCase(),
+                password: String(data.password ?? data['Mot de passe'] ?? ''),
+                fullname: String(data.fullname ?? data['Nom Complet'] ?? data.NomComplet ?? '').trim(),
+                role: String(data.role ?? data['Rôle'] ?? 'chauffeur').toLowerCase(),
+                active: data.active ?? data.Actif ?? true
+            };
+        }
+
+        function accountToFirestore(account) {
+            return {
+                Identifiant: account.username,
+                'Nom Complet': account.fullname,
+                'Mot de passe': account.password,
+                'Rôle': account.role || 'chauffeur',
+                Actif: account.active !== false,
+                'Dernière modification': firebase.firestore.FieldValue.serverTimestamp()
+            };
+        }
+
+        function normalizeOrder(data, doc) {
+            const parentTrajet = doc && doc.ref && doc.ref.parent && doc.ref.parent.parent
+                ? doc.ref.parent.parent.id.replace(/_/g, ' ')
+                : '';
+            const dateValue = data.datetime ?? data['Date de prélèvement'] ?? '';
+            let datetime = dateValue;
+            if (dateValue && typeof dateValue.toDate === 'function') {
+                const d = dateValue.toDate();
+                datetime = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+            }
+            return {
+                id: data.id || (doc ? doc.id : ('order-' + Date.now())),
+                lotNumber: data.lotNumber ?? data['Numéro de Lot'] ?? '',
+                variety: data.variety ?? data['Variété'] ?? 'Non renseignée',
+                bacsCount: data.bacsCount ?? data.Bacs ?? '',
+                weight: data.weight ?? data.Poids ?? '',
+                producer: data.producer ?? data.Exploitant ?? '',
+                pickingCity: data.pickingCity ?? data['Ville de picking'] ?? '',
+                pickingAddress: data.pickingAddress ?? data.Adresse ?? '',
+                driver: data.driver ?? data['Fait par'] ?? '',
+                datetime,
+                status: data.status ?? data.Statut ?? 'En cours',
+                comment: data.comment ?? data.Observations ?? '',
+                trajet: data.trajet ?? data.Trajet ?? parentTrajet,
+                tourNumber: data.tourNumber ?? data['Numéro de tournée'] ?? '',
+                qualityAspect: data.qualityAspect ?? data.Aspect ?? 'Non renseigné',
+                qualityGreening: data.qualityGreening ?? data.Verdissement ?? 'Non renseigné',
+                qualityScab: data.qualityScab ?? data['Gale Commune'] ?? 'Non renseigné',
+                qualityScurf: data.qualityScurf ?? data['Gale Argentée'] ?? 'Non renseigné',
+                qualityDamage: data.qualityDamage ?? data['Blessures/Défauts'] ?? 'Non renseigné',
+                qualityRot: data.qualityRot ?? data.Pourriture ?? 'Non renseigné'
+            };
+        }
+
+        function orderToFirestore(order) {
+            return {
+                id: order.id,
+                Trajet: order.trajet || '',
+                'Numéro de Lot': order.lotNumber || '',
+                'Variété': order.variety || 'Non renseignée',
+                Bacs: order.bacsCount === '' ? '' : Number(order.bacsCount),
+                Poids: order.weight === '' ? '' : Number(order.weight),
+                Exploitant: order.producer || '',
+                'Ville de picking': order.pickingCity || '',
+                Adresse: order.pickingAddress || '',
+                'Fait par': order.driver || '',
+                'Identifiant chauffeur': currentUser ? currentUser.username : '',
+                'Date de prélèvement': order.datetime || '',
+                Statut: order.status || 'En cours',
+                Observations: order.comment || '',
+                Aspect: order.qualityAspect || 'Non renseigné',
+                Verdissement: order.qualityGreening || 'Non renseigné',
+                'Gale Commune': order.qualityScab || 'Non renseigné',
+                'Gale Argentée': order.qualityScurf || 'Non renseigné',
+                'Blessures/Défauts': order.qualityDamage || 'Non renseigné',
+                Pourriture: order.qualityRot || 'Non renseigné',
+                'Numéro de tournée': order.tourNumber || '',
+                'Dernière modification': firebase.firestore.FieldValue.serverTimestamp()
+            };
+        }
+
+        async function writeAuditLog(action, details = {}) {
+            if (!db) return;
+            try {
+                await db.collection('Logs').add({
+                    Action: action,
+                    Utilisateur: currentUser ? currentUser.fullname : 'Système / non connecté',
+                    Identifiant: currentUser ? currentUser.username : '',
+                    Date: firebase.firestore.FieldValue.serverTimestamp(),
+                    Details: details,
+                    Navigateur: navigator.userAgent.slice(0, 250)
+                });
+            } catch (err) {
+                console.warn('Impossible d’écrire le journal :', err);
+            }
+        }
+
+        function initFirestore(isSilent = false) {
+            try {
+                if (!firebase.apps.length) firebaseApp = firebase.initializeApp(GLOBAL_FIREBASE_CONFIG);
+                else firebaseApp = firebase.app();
+                db = firebaseApp.firestore();
+                localStorage.setItem('lg_firestore_enabled', 'true');
+                startGlobalRealtimeListeners();
+                if (!isSilent) showToast('Base globale Firestore connectée en temps réel.', 'success');
+            } catch (err) {
+                console.error('Firestore Init Error:', err);
+                showToast('Connexion à Firestore impossible : ' + err.message, 'error');
+            }
+        }
+
+        function startGlobalRealtimeListeners() {
+            if (!db) return;
+            if (unsubscribeUsersRealtime) unsubscribeUsersRealtime();
+            if (unsubscribeLotsRealtime) unsubscribeLotsRealtime();
+            if (unsubscribeVarietiesRealtime) unsubscribeVarietiesRealtime();
+
+            unsubscribeUsersRealtime = db.collection('users').onSnapshot(snapshot => {
+                accounts = snapshot.docs.map(doc => normalizeAccount(doc.data(), doc.id)).filter(a => a.username && a.active !== false);
+                localStorage.setItem('lg_accounts', JSON.stringify(accounts));
+                if (typeof renderSettingsContent === 'function') renderSettingsContent();
+            }, err => console.error('Users realtime:', err));
+
+            unsubscribeLotsRealtime = db.collectionGroup('Lots').onSnapshot(snapshot => {
+                samplingOrders = snapshot.docs.map(doc => normalizeOrder(doc.data(), doc));
+                // Cache only: never push this cache back automatically.
+                localStorage.setItem('lg_orders', JSON.stringify(samplingOrders));
+                if (currentUser) {
+                    renderOrdersTable();
+                    renderKPIs();
+                    syncTrajetDropdown();
+                }
+            }, err => {
+                console.error('Lots realtime:', err);
+                showToast(err.code === 'permission-denied' ? 'Accès aux lots refusé par les règles Firestore. Publiez le fichier firestore-global-corrige.rules dans Firebase.' : 'Lecture temps réel des lots impossible : ' + err.message, 'error');
+            });
+
+            unsubscribeVarietiesRealtime = db.collection('config').doc('varieties').onSnapshot(doc => {
+                if (doc.exists && Array.isArray(doc.data().list)) {
+                    varieties = doc.data().list;
+                    localStorage.setItem('lg_varieties', JSON.stringify(varieties));
+                    syncVarietyDropdowns();
+                    if (typeof renderSettingsContent === 'function') renderSettingsContent();
+                }
+            }, err => console.warn('Variétés realtime:', err));
+        }
+
+        function initializeDatabase() {
+            // Suppression définitive des jeux de données de démonstration.
+            localStorage.removeItem('lg_orders');
+            const cachedVarieties = JSON.parse(localStorage.getItem('lg_varieties') || 'null');
+            varieties = Array.isArray(cachedVarieties) && cachedVarieties.length ? cachedVarieties : [...DEFAULT_VARIETIES];
+            accounts = [];
+            samplingOrders = [];
+
+            // La création publique de compte est désactivée.
+            const registerTab = document.getElementById('tab-register');
+            const registerForm = document.getElementById('register-form');
+            if (registerTab) registerTab.remove();
+            if (registerForm) registerForm.remove();
+            const loginTab = document.getElementById('tab-login');
+            if (loginTab) loginTab.className = 'w-full py-2.5 text-sm font-semibold rounded-lg text-white bg-emerald-600 shadow-md';
+
+            const savedUser = localStorage.getItem('lg_current_user') || sessionStorage.getItem('lg_current_user');
+            if (savedUser) {
+                try { currentUser = JSON.parse(savedUser); showDashboard(!!localStorage.getItem('lg_current_user')); }
+                catch { showAuth(); }
+            } else showAuth();
+            initFirestore(true);
+        }
+
+        async function handleLogin(event) {
+            event.preventDefault();
+            if (!db) initFirestore(true);
+            const username = document.getElementById('login-username').value.trim().toLowerCase();
+            const password = document.getElementById('login-password').value;
+            const rememberMe = document.getElementById('remember-me').checked;
+            try {
+                const direct = await db.collection('users').doc(username).get();
+                let user = direct.exists ? normalizeAccount(direct.data(), direct.id) : null;
+                if (!user) {
+                    const snap = await db.collection('users').where('Identifiant', '==', username).limit(1).get();
+                    if (!snap.empty) user = normalizeAccount(snap.docs[0].data(), snap.docs[0].id);
+                }
+                if (!user || user.active === false || user.password !== password) throw new Error('INVALID_LOGIN');
+                currentUser = user;
+                localStorage.removeItem('lg_current_user');
+                sessionStorage.removeItem('lg_current_user');
+                (rememberMe ? localStorage : sessionStorage).setItem('lg_current_user', JSON.stringify(user));
+                showDashboard(rememberMe);
+                await writeAuditLog('CONNEXION', { resultat: 'succès' });
+                showToast(`Bienvenue, ${user.fullname} !`, 'success');
+            } catch (err) {
+                showToast('Identifiant ou mot de passe incorrect.', 'error');
+            }
+        }
+
+        function handleRegister(event) {
+            event.preventDefault();
+            showToast('La création publique de compte est désactivée. Demandez à un administrateur.', 'warning');
+        }
+
+        async function firestorePushOrder(order) {
+            if (!db) initFirestore(true);
+            const trajetId = (order.trajet && order.trajet.trim()) ? order.trajet.trim().replace(/\//g, '_') : 'Sans_Trajet';
+            const trajetRef = db.collection('Trajets').doc(trajetId);
+            await trajetRef.set({
+                Destination: order.trajet || 'Sans Trajet',
+                'Numéro de tournée': order.tourNumber || '',
+                Actif: true,
+                'Dernière modification': firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+            await trajetRef.collection('Lots').doc(order.id).set(orderToFirestore(order), { merge: true });
+            await writeAuditLog('LOT_ENREGISTRE_OU_MODIFIE', { lotId: order.id, numeroLot: order.lotNumber, trajet: order.trajet });
+        }
+
+        async function firestoreDeleteOrder(orderId, trajet) {
+            if (!db) initFirestore(true);
+            const trajetId = (trajet && trajet.trim()) ? trajet.trim().replace(/\//g, '_') : 'Sans_Trajet';
+            await db.collection('Trajets').doc(trajetId).collection('Lots').doc(orderId).delete();
+            await writeAuditLog('LOT_SUPPRIME', { lotId: orderId, trajet: trajet || 'Sans Trajet' });
+        }
+
+        async function firestorePushAccount(account) {
+            if (!db) initFirestore(true);
+            await db.collection('users').doc(account.username.toLowerCase()).set(accountToFirestore(account), { merge: true });
+            await writeAuditLog('COMPTE_CREE_OU_MODIFIE', { identifiant: account.username, nom: account.fullname });
+        }
+
+        async function firestoreDeleteAccount(username) {
+            if (!db) initFirestore(true);
+            await db.collection('users').doc(username.toLowerCase()).delete();
+            await writeAuditLog('COMPTE_SUPPRIME', { identifiant: username });
+        }
+
+        function syncNowWithFirestore(isSilent = false) {
+            startGlobalRealtimeListeners();
+            if (!isSilent) showToast('La vue temps réel globale est active.', 'success');
+        }
+
+        function testFirestoreConnection() {
+            if (!db) initFirestore(true);
+            db.collection('users').limit(1).get()
+                .then(() => showToast('Connexion Firestore validée.', 'success'))
+                .catch(err => showToast('Erreur Firestore : ' + err.message, 'error'));
+        }
+
+        // Les suppressions de lots exigent le déverrouillage Admin.
+        // Appelle explicitement la fonction cœur pour éviter toute récursion
+        // causée par les déclarations de fonctions portant le même nom.
+        async function deleteOrder(id) {
+            if (!isAdminUnlocked) {
+                showToast('Suppression réservée à l’administration. Déverrouillez l’onglet Admin.', 'warning');
+                return;
+            }
+
+            try {
+                await deleteOrderCore(id);
+            } catch (error) {
+                console.error('Erreur suppression du lot :', error);
+                showToast('Impossible de supprimer le lot : ' + (error.message || error), 'error');
+            }
+        }
+
+        function ensureAdminLogsPanel() {
+            if (document.getElementById('admin-logs-container')) return;
+            const unlocked = document.getElementById('admin-unlocked-view');
+            if (!unlocked) return;
+            const section = document.createElement('div');
+            section.id = 'admin-logs-container';
+            section.className = 'border-t border-slate-100 pt-5';
+            section.innerHTML = `
+                <div class="flex items-center justify-between mb-2">
+                    <h5 class="text-xs font-bold text-slate-500 uppercase tracking-wider"><i class="fa-solid fa-clock-rotate-left text-emerald-600 mr-1.5"></i>Journal d’activité Firestore</h5>
+                    <span class="text-[10px] text-slate-400">100 dernières actions</span>
+                </div>
+                <div class="overflow-x-auto border border-slate-200 rounded-xl max-h-72 overflow-y-auto">
+                    <table class="min-w-full text-[10px]"><thead class="sticky top-0 bg-slate-100"><tr><th class="p-2 text-left">Date</th><th class="p-2 text-left">Utilisateur</th><th class="p-2 text-left">Action</th><th class="p-2 text-left">Détails</th></tr></thead><tbody id="admin-logs-body"></tbody></table>
+                </div>`;
+            unlocked.appendChild(section);
+        }
+
+        function startAdminLogsListener() {
+            if (!db || !isAdminUnlocked) return;
+            if (unsubscribeLogsRealtime) unsubscribeLogsRealtime();
+            unsubscribeLogsRealtime = db.collection('Logs').orderBy('Date', 'desc').limit(100).onSnapshot(snapshot => {
+                const body = document.getElementById('admin-logs-body');
+                if (!body) return;
+                body.innerHTML = snapshot.docs.map(doc => {
+                    const d = doc.data();
+                    const date = d.Date && d.Date.toDate ? d.Date.toDate().toLocaleString('fr-FR') : 'En cours';
+                    const details = JSON.stringify(d.Details || {}).replace(/</g, '&lt;');
+                    return `<tr class="border-t border-slate-100"><td class="p-2 whitespace-nowrap">${date}</td><td class="p-2">${d.Utilisateur || ''}<br><span class="text-slate-400">${d.Identifiant || ''}</span></td><td class="p-2 font-bold">${d.Action || ''}</td><td class="p-2 font-mono break-all">${details}</td></tr>`;
+                }).join('') || '<tr><td colspan="4" class="p-4 text-center text-slate-400">Aucun log</td></tr>';
+            }, err => console.warn('Logs realtime:', err));
+        }
+
         // Initialize App on DOM Load
         window.addEventListener('DOMContentLoaded', () => {
             initializeDatabase();
             startLiveClock();
+
+            const adminPinInput = document.getElementById('admin-pin-input');
+            if (adminPinInput) {
+                adminPinInput.addEventListener('keydown', event => {
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                        unlockAdminPanel();
+                    }
+                });
+            }
         });
     </script>
 </body>

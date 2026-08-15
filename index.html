@@ -28,6 +28,8 @@
     </script>
     <!-- FontAwesome for gorgeous icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Barcode reader (EAN-13 / Code 128 / QR) -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -346,17 +348,27 @@
 
                             <!-- Row 1: Lot Number -->
                             <div>
-                                <label for="form-lot-number" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Numéro de Lot <span class="text-rose-500">*</span></label>
-                            <div class="mt-1 relative rounded-lg shadow-sm">
-                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <span class="text-slate-400 text-xs font-bold font-mono">LOT-</span>
+                                <div class="flex items-center justify-between gap-3">
+                                    <label for="form-lot-number" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Numéro de Lot <span class="text-rose-500">*</span></label>
+                                    <button type="button" onclick="openLotScanner()"
+                                        class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-700 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">
+                                        <i class="fa-solid fa-barcode"></i>
+                                        <span>Scanner l'étiquette</span>
+                                    </button>
                                 </div>
-                                <input type="text" id="form-lot-number" required
-                                    class="block w-full pl-12 pr-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm font-mono uppercase"
-                                    placeholder="2026-A10">
+                                <div class="mt-2 relative rounded-lg shadow-sm">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <span class="text-slate-400 text-xs font-bold font-mono">LOT-</span>
+                                    </div>
+                                    <input type="text" id="form-lot-number" required inputmode="text" autocomplete="off"
+                                        class="block w-full pl-12 pr-10 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm font-mono uppercase"
+                                        placeholder="20240801/0001">
+                                    <div id="lot-scan-success-icon" class="hidden absolute inset-y-0 right-0 pr-3 items-center pointer-events-none text-emerald-600">
+                                        <i class="fa-solid fa-circle-check"></i>
+                                    </div>
+                                </div>
+                                <p id="lot-scan-helper" class="mt-1 text-[10px] text-slate-400">Scannez le code-barres Chrono ou saisissez le numéro manuellement.</p>
                             </div>
-                            <p class="mt-1 text-[10px] text-slate-400">Exemple : 2026-A10 ou 45B98</p>
-                        </div>
 
                         <!-- Row 2: Variety selection with dynamic "Other" field -->
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1046,8 +1058,205 @@
     </div>
 
 
+    <!-- LOT BARCODE SCANNER MODAL -->
+    <div id="lot-scanner-modal" class="hidden fixed inset-0 z-[70] bg-slate-950/80 p-3 sm:p-6 no-print" role="dialog" aria-modal="true" aria-labelledby="lot-scanner-title">
+        <div class="mx-auto flex h-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+            <div class="flex items-start justify-between gap-4 border-b border-slate-100 p-4">
+                <div>
+                    <h2 id="lot-scanner-title" class="flex items-center gap-2 text-lg font-extrabold text-slate-800">
+                        <i class="fa-solid fa-barcode text-emerald-600"></i>
+                        Scanner l'étiquette Chrono
+                    </h2>
+                    <p class="mt-1 text-xs text-slate-500">Placez entièrement le code-barres horizontal dans le cadre.</p>
+                </div>
+                <button type="button" onclick="closeLotScanner()" class="rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700" aria-label="Fermer le scanner">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto bg-slate-950 p-3">
+                <div id="barcode-reader" class="mx-auto min-h-[280px] w-full overflow-hidden rounded-xl bg-black text-white"></div>
+                <div class="pointer-events-none relative mx-auto -mt-[172px] mb-[116px] h-24 w-[88%] rounded-xl border-2 border-brand-yellow shadow-[0_0_0_9999px_rgba(2,6,23,0.28)]">
+                    <div class="absolute inset-x-3 top-1/2 h-0.5 bg-rose-500 shadow-[0_0_8px_#f43f5e]"></div>
+                </div>
+                <div id="lot-scanner-status" class="mt-3 rounded-xl border border-slate-700 bg-slate-900 px-3 py-2.5 text-center text-xs font-semibold text-slate-200" aria-live="polite">
+                    <i class="fa-solid fa-camera mr-1.5 text-emerald-400"></i>Initialisation de la caméra…
+                </div>
+            </div>
+
+            <div class="space-y-3 border-t border-slate-100 bg-white p-4">
+                <button type="button" onclick="document.getElementById('lot-barcode-file').click()"
+                    class="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50">
+                    <i class="fa-solid fa-image text-emerald-600"></i>
+                    Prendre ou choisir une photo
+                </button>
+                <input id="lot-barcode-file" type="file" accept="image/*" capture="environment" class="hidden" onchange="scanLotBarcodeFile(event)">
+                <p class="text-center text-[10px] leading-relaxed text-slate-400">La photo reste sur votre appareil : elle sert uniquement à lire le code-barres et n'est pas enregistrée.</p>
+            </div>
+        </div>
+    </div>
+
     <!-- APPLICATION LOGIC / JAVASCRIPT -->
     <script>
+        // ----------------------------------------------------
+        // CHRONO LABEL BARCODE SCANNER
+        // ----------------------------------------------------
+        let lotBarcodeScanner = null;
+        let lotScannerIsRunning = false;
+        let lotScannerResultLocked = false;
+
+        function isValidEan13(value) {
+            if (!/^\d{13}$/.test(value)) return false;
+            const sum = value.slice(0, 12).split('').reduce((total, digit, index) => {
+                return total + Number(digit) * (index % 2 === 0 ? 1 : 3);
+            }, 0);
+            return (10 - (sum % 10)) % 10 === Number(value[12]);
+        }
+
+        function parseChronoLotNumber(rawValue) {
+            const raw = String(rawValue || '').trim();
+            const printedLot = raw.match(/(\d{8})\s*[\/-]\s*(\d{4})/);
+            if (printedLot) return `${printedLot[1]}/${printedLot[2]}`;
+
+            const digits = raw.replace(/\D/g, '');
+            if (digits.length === 13) {
+                if (!isValidEan13(digits)) return null;
+                return `${digits.slice(0, 8)}/${digits.slice(8, 12)}`;
+            }
+            // Some readers omit the EAN-13 control digit.
+            if (digits.length === 12) {
+                return `${digits.slice(0, 8)}/${digits.slice(8, 12)}`;
+            }
+            return null;
+        }
+
+        function setLotScannerStatus(message, type = 'info') {
+            const status = document.getElementById('lot-scanner-status');
+            if (!status) return;
+            const styles = {
+                info: ['border-slate-700', 'bg-slate-900', 'text-slate-200', 'fa-camera', 'text-emerald-400'],
+                success: ['border-emerald-500', 'bg-emerald-950', 'text-emerald-100', 'fa-circle-check', 'text-emerald-400'],
+                error: ['border-rose-500', 'bg-rose-950', 'text-rose-100', 'fa-triangle-exclamation', 'text-rose-400']
+            };
+            const selected = styles[type] || styles.info;
+            status.className = `mt-3 rounded-xl border ${selected[0]} ${selected[1]} px-3 py-2.5 text-center text-xs font-semibold ${selected[2]}`;
+            status.innerHTML = `<i class="fa-solid ${selected[3]} mr-1.5 ${selected[4]}"></i>${message}`;
+        }
+
+        async function stopLotScannerEngine() {
+            if (!lotBarcodeScanner) return;
+            try {
+                if (lotScannerIsRunning) await lotBarcodeScanner.stop();
+            } catch (error) {
+                console.debug('Arrêt scanner :', error);
+            }
+            try {
+                await lotBarcodeScanner.clear();
+            } catch (error) {
+                console.debug('Nettoyage scanner :', error);
+            }
+            lotScannerIsRunning = false;
+            lotBarcodeScanner = null;
+        }
+
+        async function openLotScanner() {
+            const modal = document.getElementById('lot-scanner-modal');
+            modal.classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+            lotScannerResultLocked = false;
+            setLotScannerStatus('Autorisez la caméra puis visez le code-barres.', 'info');
+
+            if (typeof Html5Qrcode === 'undefined') {
+                setLotScannerStatus('Le lecteur n’a pas pu être chargé. Vérifiez la connexion Internet ou saisissez le lot manuellement.', 'error');
+                return;
+            }
+
+            await stopLotScannerEngine();
+            lotBarcodeScanner = new Html5Qrcode('barcode-reader', {
+                formatsToSupport: [
+                    Html5QrcodeSupportedFormats.EAN_13,
+                    Html5QrcodeSupportedFormats.CODE_128,
+                    Html5QrcodeSupportedFormats.EAN_8
+                ],
+                verbose: false
+            });
+
+            try {
+                await lotBarcodeScanner.start(
+                    { facingMode: 'environment' },
+                    {
+                        fps: 12,
+                        aspectRatio: 1.75,
+                        qrbox: (viewfinderWidth, viewfinderHeight) => ({
+                            width: Math.floor(viewfinderWidth * 0.88),
+                            height: Math.min(130, Math.floor(viewfinderHeight * 0.42))
+                        })
+                    },
+                    decodedText => handleLotBarcodeResult(decodedText),
+                    () => {}
+                );
+                lotScannerIsRunning = true;
+                setLotScannerStatus('Scanner actif — rapprochez-vous jusqu’à voir les barres nettement.', 'info');
+            } catch (error) {
+                console.warn('Caméra indisponible :', error);
+                setLotScannerStatus('Caméra indisponible. Utilisez le bouton photo ci-dessous ou autorisez la caméra dans le navigateur.', 'error');
+            }
+        }
+
+        async function closeLotScanner() {
+            await stopLotScannerEngine();
+            document.getElementById('lot-scanner-modal').classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+            const fileInput = document.getElementById('lot-barcode-file');
+            if (fileInput) fileInput.value = '';
+        }
+
+        async function handleLotBarcodeResult(decodedText) {
+            if (lotScannerResultLocked) return;
+            const lotNumber = parseChronoLotNumber(decodedText);
+            if (!lotNumber) {
+                setLotScannerStatus(`Code détecté mais non reconnu (${decodedText}). Continuez à viser le code EAN-13.`, 'error');
+                return;
+            }
+
+            lotScannerResultLocked = true;
+            const input = document.getElementById('form-lot-number');
+            input.value = lotNumber;
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+
+            const icon = document.getElementById('lot-scan-success-icon');
+            icon.classList.remove('hidden');
+            icon.classList.add('flex');
+            const helper = document.getElementById('lot-scan-helper');
+            helper.textContent = `Lot ${lotNumber} lu depuis l’étiquette Chrono.`;
+            helper.className = 'mt-1 text-[10px] font-semibold text-emerald-600';
+
+            setLotScannerStatus(`Lot ${lotNumber} reconnu avec succès.`, 'success');
+            if (navigator.vibrate) navigator.vibrate(120);
+            showToast(`Lot ${lotNumber} renseigné automatiquement.`, 'success');
+            window.setTimeout(() => closeLotScanner(), 650);
+        }
+
+        async function scanLotBarcodeFile(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file || typeof Html5Qrcode === 'undefined') return;
+            lotScannerResultLocked = false;
+            setLotScannerStatus('Analyse de la photo en cours…', 'info');
+            await stopLotScannerEngine();
+            lotBarcodeScanner = new Html5Qrcode('barcode-reader', {
+                formatsToSupport: [Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.CODE_128],
+                verbose: false
+            });
+            try {
+                const decodedText = await lotBarcodeScanner.scanFile(file, true);
+                await handleLotBarcodeResult(decodedText);
+            } catch (error) {
+                console.warn('Code-barres non lisible sur la photo :', error);
+                setLotScannerStatus('Code-barres non lisible. Reprenez la photo bien droite, nette et sans reflet.', 'error');
+            }
+        }
+
         // ----------------------------------------------------
         // POTATO VARIETIES DETAILED INFO
         // ----------------------------------------------------
@@ -1764,6 +1973,17 @@
             document.getElementById('form-mode-badge').className = "text-xs bg-emerald-900/60 text-emerald-200 px-2 py-1 rounded font-mono";
             document.getElementById('form-order-id').value = "";
             document.getElementById('sampling-form').reset();
+
+            const scanIcon = document.getElementById('lot-scan-success-icon');
+            if (scanIcon) {
+                scanIcon.classList.add('hidden');
+                scanIcon.classList.remove('flex');
+            }
+            const scanHelper = document.getElementById('lot-scan-helper');
+            if (scanHelper) {
+                scanHelper.textContent = "Scannez le code-barres Chrono ou saisissez le numéro manuellement.";
+                scanHelper.className = "mt-1 text-[10px] text-slate-400";
+            }
 
             // Setup Trajet select dropdown
             syncTrajetDropdown();

@@ -30,6 +30,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Barcode reader (EAN-13 / Code 128 / QR) -->
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <!-- OCR reader for complete Chrono labels -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -399,6 +401,14 @@
                                 <div><span class="text-slate-400 font-bold">Chair:</span> <span id="info-variety-flesh">--</span></div>
                                 <div class="col-span-2"><span class="text-slate-400 font-bold">Usages culinaires:</span> <span id="info-variety-usage">--</span></div>
                             </div>
+                        </div>
+
+                        <!-- Calibre read from Chrono label or entered manually -->
+                        <div>
+                            <label for="form-calibre" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Calibre <span class="text-slate-400 font-normal">(Optionnel)</span></label>
+                            <input type="text" id="form-calibre" inputmode="numeric" autocomplete="off"
+                                class="mt-1 block w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm font-mono"
+                                placeholder="35/55">
                         </div>
 
                         <!-- Row 3: Bacs & Weight -->
@@ -1058,16 +1068,16 @@
     </div>
 
 
-    <!-- LOT BARCODE SCANNER MODAL -->
+    <!-- CHRONO LABEL CAMERA / OCR MODAL -->
     <div id="lot-scanner-modal" class="hidden fixed inset-0 z-[70] bg-slate-950/80 p-3 sm:p-6 no-print" role="dialog" aria-modal="true" aria-labelledby="lot-scanner-title">
-        <div class="mx-auto flex h-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+        <div class="mx-auto flex h-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
             <div class="flex items-start justify-between gap-4 border-b border-slate-100 p-4">
                 <div>
                     <h2 id="lot-scanner-title" class="flex items-center gap-2 text-lg font-extrabold text-slate-800">
-                        <i class="fa-solid fa-barcode text-emerald-600"></i>
-                        Scanner l'étiquette Chrono
+                        <i class="fa-solid fa-camera text-emerald-600"></i>
+                        Photographier l'étiquette Chrono
                     </h2>
-                    <p class="mt-1 text-xs text-slate-500">Placez entièrement le code-barres horizontal dans le cadre.</p>
+                    <p class="mt-1 text-xs text-slate-500">Cadrez toute l'étiquette, comme pour scanner une carte bancaire.</p>
                 </div>
                 <button type="button" onclick="closeLotScanner()" class="rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700" aria-label="Fermer le scanner">
                     <i class="fa-solid fa-xmark text-xl"></i>
@@ -1075,23 +1085,56 @@
             </div>
 
             <div class="flex-1 overflow-y-auto bg-slate-950 p-3">
-                <div id="barcode-reader" class="mx-auto min-h-[280px] w-full overflow-hidden rounded-xl bg-black text-white"></div>
-                <div class="pointer-events-none relative mx-auto -mt-[172px] mb-[116px] h-24 w-[88%] rounded-xl border-2 border-brand-yellow shadow-[0_0_0_9999px_rgba(2,6,23,0.28)]">
-                    <div class="absolute inset-x-3 top-1/2 h-0.5 bg-rose-500 shadow-[0_0_8px_#f43f5e]"></div>
+                <div id="chrono-camera-stage" class="relative mx-auto min-h-[280px] w-full overflow-hidden rounded-xl bg-black">
+                    <video id="chrono-camera-video" class="h-full min-h-[280px] w-full object-cover" autoplay muted playsinline></video>
+                    <img id="chrono-photo-preview" class="hidden h-auto max-h-[60vh] w-full object-contain" alt="Photo temporaire de l'étiquette">
+                    <canvas id="chrono-camera-canvas" class="hidden"></canvas>
+                    <div id="chrono-camera-guide" class="pointer-events-none absolute inset-[9%] rounded-xl border-2 border-brand-yellow shadow-[0_0_0_9999px_rgba(2,6,23,0.48)]">
+                        <span class="absolute -top-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-black/70 px-3 py-1 text-[10px] font-bold text-white">Placez toute l'étiquette dans ce cadre</span>
+                        <span class="absolute -left-0.5 -top-0.5 h-7 w-7 rounded-tl-xl border-l-4 border-t-4 border-white"></span>
+                        <span class="absolute -right-0.5 -top-0.5 h-7 w-7 rounded-tr-xl border-r-4 border-t-4 border-white"></span>
+                        <span class="absolute -bottom-0.5 -left-0.5 h-7 w-7 rounded-bl-xl border-b-4 border-l-4 border-white"></span>
+                        <span class="absolute -bottom-0.5 -right-0.5 h-7 w-7 rounded-br-xl border-b-4 border-r-4 border-white"></span>
+                    </div>
                 </div>
+                <div id="barcode-reader" class="hidden"></div>
                 <div id="lot-scanner-status" class="mt-3 rounded-xl border border-slate-700 bg-slate-900 px-3 py-2.5 text-center text-xs font-semibold text-slate-200" aria-live="polite">
                     <i class="fa-solid fa-camera mr-1.5 text-emerald-400"></i>Initialisation de la caméra…
                 </div>
             </div>
 
             <div class="space-y-3 border-t border-slate-100 bg-white p-4">
-                <button type="button" onclick="document.getElementById('lot-barcode-file').click()"
-                    class="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50">
-                    <i class="fa-solid fa-image text-emerald-600"></i>
-                    Prendre ou choisir une photo
-                </button>
-                <input id="lot-barcode-file" type="file" accept="image/*" capture="environment" class="hidden" onchange="scanLotBarcodeFile(event)">
-                <p class="text-center text-[10px] leading-relaxed text-slate-400">La photo reste sur votre appareil : elle sert uniquement à lire le code-barres et n'est pas enregistrée.</p>
+                <div id="chrono-capture-actions" class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <button type="button" onclick="captureChronoLabelPhoto()"
+                        class="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700">
+                        <i class="fa-solid fa-camera"></i>Prendre la photo
+                    </button>
+                    <button type="button" onclick="document.getElementById('chrono-label-file').click()"
+                        class="flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50">
+                        <i class="fa-solid fa-image text-emerald-600"></i>Choisir une photo
+                    </button>
+                </div>
+                <input id="chrono-label-file" type="file" accept="image/*" capture="environment" class="hidden" onchange="scanCompleteChronoLabel(event)">
+
+                <div id="chrono-ocr-result" class="hidden rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                    <div class="mb-3 flex items-center justify-between gap-2">
+                        <h3 class="text-xs font-extrabold uppercase tracking-wider text-emerald-800">Vérifiez les informations reconnues</h3>
+                        <button type="button" onclick="retakeChronoLabelPhoto()" class="text-xs font-bold text-slate-500 hover:text-emerald-700"><i class="fa-solid fa-rotate-left mr-1"></i>Reprendre</button>
+                    </div>
+                    <div id="chrono-ocr-fields" class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        <label class="text-[10px] font-bold uppercase text-slate-500">Variété<input id="ocr-variety" type="text" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-sm font-semibold text-slate-800"></label>
+                        <label class="text-[10px] font-bold uppercase text-slate-500">Calibre<input id="ocr-calibre" type="text" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-sm font-semibold text-slate-800"></label>
+                        <label class="text-[10px] font-bold uppercase text-slate-500">Numéro de lot<input id="ocr-lot-number" type="text" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-sm font-mono font-semibold text-slate-800"></label>
+                        <label class="text-[10px] font-bold uppercase text-slate-500">Date et heure<input id="ocr-datetime" type="datetime-local" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-sm font-semibold text-slate-800"></label>
+                        <label class="text-[10px] font-bold uppercase text-slate-500 sm:col-span-2">Défauts majeurs<input id="ocr-defects" type="text" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-sm font-semibold text-slate-800"></label>
+                        <label class="text-[10px] font-bold uppercase text-slate-500 sm:col-span-2">Exploitant<input id="ocr-producer" type="text" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-sm font-semibold text-slate-800"></label>
+                    </div>
+                    <div class="mt-3 flex gap-2">
+                        <button type="button" onclick="applyChronoOcrData()" class="flex-1 rounded-lg bg-emerald-600 px-3 py-3 text-sm font-bold text-white hover:bg-emerald-700"><i class="fa-solid fa-check mr-1.5"></i>Valider et remplir le formulaire</button>
+                    </div>
+                </div>
+
+                <p class="text-center text-[10px] leading-relaxed text-slate-400">La photo est analysée sur votre appareil puis supprimée. Vérifiez toujours le récapitulatif avant de remplir le formulaire.</p>
             </div>
         </div>
     </div>
@@ -1104,6 +1147,8 @@
         let lotBarcodeScanner = null;
         let lotScannerIsRunning = false;
         let lotScannerResultLocked = false;
+        let chronoCameraStream = null;
+        let chronoPreviewUrl = '';
 
         function isValidEan13(value) {
             if (!/^\d{13}$/.test(value)) return false;
@@ -1164,51 +1209,104 @@
             modal.classList.remove('hidden');
             document.body.classList.add('overflow-hidden');
             lotScannerResultLocked = false;
-            setLotScannerStatus('Autorisez la caméra puis visez le code-barres.', 'info');
+            resetChronoOcrResult();
+            showChronoCameraView();
+            setLotScannerStatus('Autorisez la caméra puis placez toute l’étiquette dans le cadre.', 'info');
+            await startChronoCamera();
+        }
 
-            if (typeof Html5Qrcode === 'undefined') {
-                setLotScannerStatus('Le lecteur n’a pas pu être chargé. Vérifiez la connexion Internet ou saisissez le lot manuellement.', 'error');
-                return;
-            }
-
-            await stopLotScannerEngine();
-            lotBarcodeScanner = new Html5Qrcode('barcode-reader', {
-                formatsToSupport: [
-                    Html5QrcodeSupportedFormats.EAN_13,
-                    Html5QrcodeSupportedFormats.CODE_128,
-                    Html5QrcodeSupportedFormats.EAN_8
-                ],
-                verbose: false
-            });
-
+        async function startChronoCamera() {
+            stopChronoCamera();
+            const video = document.getElementById('chrono-camera-video');
             try {
-                await lotBarcodeScanner.start(
-                    { facingMode: 'environment' },
-                    {
-                        fps: 12,
-                        aspectRatio: 1.75,
-                        qrbox: (viewfinderWidth, viewfinderHeight) => ({
-                            width: Math.floor(viewfinderWidth * 0.88),
-                            height: Math.min(130, Math.floor(viewfinderHeight * 0.42))
-                        })
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error('Caméra non prise en charge');
+                chronoCameraStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: { ideal: 'environment' },
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 }
                     },
-                    decodedText => handleLotBarcodeResult(decodedText),
-                    () => {}
-                );
-                lotScannerIsRunning = true;
-                setLotScannerStatus('Scanner actif — rapprochez-vous jusqu’à voir les barres nettement.', 'info');
+                    audio: false
+                });
+                video.srcObject = chronoCameraStream;
+                await video.play();
+                setLotScannerStatus('Caméra prête — prenez la photo quand toute l’étiquette est nette.', 'success');
             } catch (error) {
                 console.warn('Caméra indisponible :', error);
-                setLotScannerStatus('Caméra indisponible. Utilisez le bouton photo ci-dessous ou autorisez la caméra dans le navigateur.', 'error');
+                setLotScannerStatus('Caméra indisponible. Autorisez-la dans le navigateur ou utilisez « Choisir une photo ».', 'error');
             }
         }
 
+        function stopChronoCamera() {
+            if (chronoCameraStream) chronoCameraStream.getTracks().forEach(track => track.stop());
+            chronoCameraStream = null;
+            const video = document.getElementById('chrono-camera-video');
+            if (video) video.srcObject = null;
+        }
+
+        function showChronoCameraView() {
+            const video = document.getElementById('chrono-camera-video');
+            const preview = document.getElementById('chrono-photo-preview');
+            const guide = document.getElementById('chrono-camera-guide');
+            video.classList.remove('hidden');
+            preview.classList.add('hidden');
+            guide.classList.remove('hidden');
+            document.getElementById('chrono-capture-actions').classList.remove('hidden');
+            if (chronoPreviewUrl) URL.revokeObjectURL(chronoPreviewUrl);
+            chronoPreviewUrl = '';
+        }
+
+        function showChronoPhotoPreview(file) {
+            stopChronoCamera();
+            const video = document.getElementById('chrono-camera-video');
+            const preview = document.getElementById('chrono-photo-preview');
+            video.classList.add('hidden');
+            document.getElementById('chrono-camera-guide').classList.add('hidden');
+            document.getElementById('chrono-capture-actions').classList.add('hidden');
+            if (chronoPreviewUrl) URL.revokeObjectURL(chronoPreviewUrl);
+            chronoPreviewUrl = URL.createObjectURL(file);
+            preview.src = chronoPreviewUrl;
+            preview.classList.remove('hidden');
+        }
+
+        function captureChronoLabelPhoto() {
+            const video = document.getElementById('chrono-camera-video');
+            if (!video.videoWidth || !video.videoHeight) {
+                setLotScannerStatus('La caméra n’est pas encore prête. Patientez une seconde.', 'error');
+                return;
+            }
+            const canvas = document.getElementById('chrono-camera-canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d', { alpha: false }).drawImage(video, 0, 0, canvas.width, canvas.height);
+            canvas.toBlob(blob => {
+                if (!blob) {
+                    setLotScannerStatus('Impossible de prendre la photo. Réessayez.', 'error');
+                    return;
+                }
+                const file = new File([blob], `etiquette-chrono-${Date.now()}.jpg`, { type: 'image/jpeg' });
+                showChronoPhotoPreview(file);
+                analyzeCompleteChronoLabel(file);
+            }, 'image/jpeg', 0.94);
+        }
+
+        async function retakeChronoLabelPhoto() {
+            resetChronoOcrResult();
+            showChronoCameraView();
+            setLotScannerStatus('Replacez toute l’étiquette dans le cadre.', 'info');
+            await startChronoCamera();
+        }
+
         async function closeLotScanner() {
+            stopChronoCamera();
             await stopLotScannerEngine();
             document.getElementById('lot-scanner-modal').classList.add('hidden');
             document.body.classList.remove('overflow-hidden');
             const fileInput = document.getElementById('lot-barcode-file');
             if (fileInput) fileInput.value = '';
+            resetChronoOcrResult();
+            if (chronoPreviewUrl) URL.revokeObjectURL(chronoPreviewUrl);
+            chronoPreviewUrl = '';
         }
 
         async function handleLotBarcodeResult(decodedText) {
@@ -1254,6 +1352,217 @@
             } catch (error) {
                 console.warn('Code-barres non lisible sur la photo :', error);
                 setLotScannerStatus('Code-barres non lisible. Reprenez la photo bien droite, nette et sans reflet.', 'error');
+            }
+        }
+
+        let pendingChronoOcrData = null;
+        const OCR_VARIETIES = [
+            'Annabelle', 'Caesar', 'Bintje', 'Charlotte', 'Agata', 'Amandine',
+            'Monalisa', 'Spunta', 'Désirée', 'Agria', 'Victoria'
+        ];
+
+        function normalizeOcrText(value) {
+            return String(value || '')
+                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                .replace(/[|]/g, 'I')
+                .replace(/[’‘]/g, "'")
+                .toUpperCase();
+        }
+
+        function parseChronoLabelText(rawText) {
+            const normalized = normalizeOcrText(rawText);
+            const lines = normalized.split(/\r?\n/)
+                .map(line => line.replace(/\s+/g, ' ').trim())
+                .filter(Boolean);
+            const joined = lines.join(' ');
+
+            const lotMatch = joined.match(/(?:N[°O]?\s*LOT\s*)?(\d{8})\s*[\/-]\s*(\d{4})/);
+            const compactLotMatch = !lotMatch ? joined.match(/(?:N[°O]?\s*LOT\s*)?(\d{8})\s+(\d{4})/) : null;
+            const resolvedLot = lotMatch || compactLotMatch;
+
+            let calibre = '';
+            for (const line of lines) {
+                const match = line.match(/\b(\d{2})\s*[\/-]\s*(\d{2})\b/);
+                if (!match || line.includes(':')) continue;
+                const min = Number(match[1]);
+                const max = Number(match[2]);
+                if (min >= 20 && max <= 99 && min < max) {
+                    calibre = `${match[1]}/${match[2]}`;
+                    break;
+                }
+            }
+
+            const dateTimeMatch = joined.match(/\b(\d{2})[\/. -](\d{2})[\/. -](\d{2,4})\s+(\d{1,2})\s*[:H]\s*(\d{2})\b/);
+            let datetime = '';
+            let datetimeDisplay = '';
+            if (dateTimeMatch) {
+                const [, day, month, rawYear, hour, minute] = dateTimeMatch;
+                const year = rawYear.length === 2 ? `20${rawYear}` : rawYear;
+                datetime = `${year}-${month}-${day}T${hour.padStart(2, '0')}:${minute}`;
+                datetimeDisplay = `${day}/${month}/${rawYear.slice(-2)} à ${hour.padStart(2, '0')}:${minute}`;
+            }
+
+            const variety = OCR_VARIETIES.find(name => {
+                const token = normalizeOcrText(name);
+                return new RegExp(`\\b${token}\\b`).test(joined);
+            }) || '';
+
+            const producerLine = lines.find(line => {
+                return /\([A-Z]{2,5}\)/.test(line)
+                    && !/(PRESENCE|GALE|TAUPIN|GGN|LOT)/.test(line)
+                    && line.length <= 45;
+            });
+            const producer = producerLine ? producerLine.replace(/^[^A-ZÀ-Ÿ]+/, '').trim() : '';
+
+            const defectLines = lines.filter(line => /(PRESENCE|GALE|TAUPIN)/.test(line));
+            const defectText = defectLines.join(' ');
+            const detectedDefects = [];
+            if (/GALE/.test(defectText)) detectedDefects.push('Gale');
+            if (/TAUPINS?/.test(defectText)) detectedDefects.push('Taupins');
+            let defects = '';
+            if (detectedDefects.length === 1) defects = `Présence ${detectedDefects[0]}`;
+            if (detectedDefects.length > 1) defects = `Présence ${detectedDefects.slice(0, -1).join(', ')} et ${detectedDefects.at(-1)}`;
+
+            return {
+                variety,
+                calibre,
+                lotNumber: resolvedLot ? `${resolvedLot[1]}/${resolvedLot[2]}` : '',
+                datetime,
+                datetimeDisplay,
+                defects,
+                producer
+            };
+        }
+
+        function renderChronoOcrResult(data) {
+            document.getElementById('ocr-variety').value = data.variety || '';
+            document.getElementById('ocr-calibre').value = data.calibre || '';
+            document.getElementById('ocr-lot-number').value = data.lotNumber || '';
+            document.getElementById('ocr-datetime').value = data.datetime || '';
+            document.getElementById('ocr-defects').value = data.defects || '';
+            document.getElementById('ocr-producer').value = data.producer || '';
+            document.getElementById('chrono-ocr-result').classList.remove('hidden');
+        }
+
+        async function scanCompleteChronoLabel(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+            showChronoPhotoPreview(file);
+            await analyzeCompleteChronoLabel(file);
+            event.target.value = '';
+        }
+
+        async function analyzeCompleteChronoLabel(file) {
+            if (typeof Tesseract === 'undefined') {
+                setLotScannerStatus('Le module de lecture de texte n’a pas pu être chargé. Vérifiez la connexion Internet.', 'error');
+                return;
+            }
+
+            await stopLotScannerEngine();
+            resetChronoOcrResult(false);
+            setLotScannerStatus('Lecture du texte : 0 % — gardez cette fenêtre ouverte…', 'info');
+            let ocrWorker = null;
+            let ocrPassLabel = 'Lecture du texte';
+            try {
+                const barcodePromise = (async () => {
+                    if (typeof Html5Qrcode === 'undefined') return '';
+                    const imageScanner = new Html5Qrcode('barcode-reader', {
+                        formatsToSupport: [Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.CODE_128],
+                        verbose: false
+                    });
+                    try {
+                        return await imageScanner.scanFile(file, false);
+                    } catch (error) {
+                        console.debug('Code-barres non détecté pendant l’OCR :', error);
+                        return '';
+                    } finally {
+                        try { await imageScanner.clear(); } catch (error) {}
+                    }
+                })();
+
+                ocrWorker = await Tesseract.createWorker('fra', 1, {
+                    logger: message => {
+                        if (message.status === 'recognizing text') {
+                            const percent = Math.round((message.progress || 0) * 100);
+                            setLotScannerStatus(`${ocrPassLabel} : ${percent} %…`, 'info');
+                        }
+                    }
+                });
+                await ocrWorker.setParameters({
+                    tessedit_pageseg_mode: '3',
+                    preserve_interword_spaces: '1'
+                });
+                const firstPass = await ocrWorker.recognize(file);
+
+                let combinedText = firstPass.data.text;
+                let parsedData = parseChronoLabelText(combinedText);
+                if (!parsedData.defects || !parsedData.calibre || !parsedData.producer) {
+                    ocrPassLabel = 'Lecture détaillée';
+                    setLotScannerStatus('Deuxième lecture des petites lignes de l’étiquette…', 'info');
+                    await ocrWorker.setParameters({
+                        tessedit_pageseg_mode: '11'
+                    });
+                    const secondPass = await ocrWorker.recognize(file);
+                    combinedText += `\n${secondPass.data.text}`;
+                    parsedData = parseChronoLabelText(combinedText);
+                }
+
+                const decodedBarcode = await barcodePromise;
+                const barcodeLot = parseChronoLotNumber(decodedBarcode);
+                if (barcodeLot) parsedData.lotNumber = barcodeLot;
+                pendingChronoOcrData = parsedData;
+                renderChronoOcrResult(pendingChronoOcrData);
+                const recognizedCount = Object.entries(pendingChronoOcrData)
+                    .filter(([key, value]) => key !== 'datetimeDisplay' && Boolean(value)).length;
+                setLotScannerStatus(`${recognizedCount}/6 informations reconnues. Vérifiez le résultat ci-dessous.`, recognizedCount >= 5 ? 'success' : 'error');
+            } catch (error) {
+                console.error('Erreur OCR étiquette Chrono :', error);
+                setLotScannerStatus('Impossible de lire cette photo. Reprenez-la bien droite, nette et sans reflet.', 'error');
+            } finally {
+                if (ocrWorker) await ocrWorker.terminate();
+            }
+        }
+
+        function setVarietyFromOcr(variety) {
+            if (!variety) return;
+            const select = document.getElementById('form-variety');
+            const matchingOption = Array.from(select.options).find(option => option.value.toLowerCase() === variety.toLowerCase());
+            if (matchingOption) {
+                select.value = matchingOption.value;
+                handleVarietyChange(matchingOption.value);
+            } else {
+                select.value = 'Autre';
+                handleVarietyChange('Autre');
+                document.getElementById('form-variety-custom').value = variety;
+            }
+        }
+
+        function applyChronoOcrData() {
+            const data = {
+                variety: document.getElementById('ocr-variety').value.trim(),
+                calibre: document.getElementById('ocr-calibre').value.trim(),
+                lotNumber: document.getElementById('ocr-lot-number').value.trim(),
+                datetime: document.getElementById('ocr-datetime').value,
+                defects: document.getElementById('ocr-defects').value.trim(),
+                producer: document.getElementById('ocr-producer').value.trim()
+            };
+            setVarietyFromOcr(data.variety);
+            if (data.calibre) document.getElementById('form-calibre').value = data.calibre;
+            if (data.lotNumber) document.getElementById('form-lot-number').value = data.lotNumber;
+            if (data.datetime) document.getElementById('form-datetime').value = data.datetime;
+            if (data.producer) document.getElementById('form-producer').value = data.producer;
+            if (data.defects) document.getElementById('form-comment').value = `Défauts majeurs : ${data.defects}`;
+            showToast('Informations de l’étiquette ajoutées au formulaire.', 'success');
+            closeLotScanner();
+        }
+
+        function resetChronoOcrResult(clearInput = true) {
+            pendingChronoOcrData = null;
+            const result = document.getElementById('chrono-ocr-result');
+            if (result) result.classList.add('hidden');
+            if (clearInput) {
+                const input = document.getElementById('chrono-label-file');
+                if (input) input.value = '';
             }
         }
 
@@ -1813,6 +2122,7 @@
             const varietySelect = document.getElementById('form-variety').value;
             const customVariety = document.getElementById('form-variety-custom').value.trim();
             const variety = varietySelect === 'Autre' ? customVariety : (varietySelect || "Non renseignée");
+            const calibre = document.getElementById('form-calibre').value.trim() || "";
 
             const bacsCountVal = document.getElementById('form-bacs-count').value;
             const bacsCount = bacsCountVal ? parseInt(bacsCountVal) : "";
@@ -1850,7 +2160,7 @@
                     const oldTrajet = oldOrder.trajet;
 
                     samplingOrders[index] = {
-                        id: orderIdField, lotNumber, variety, bacsCount, weight, producer, pickingCity, pickingAddress, driver, datetime, status, comment,
+                        id: orderIdField, lotNumber, variety, calibre, bacsCount, weight, producer, pickingCity, pickingAddress, driver, datetime, status, comment,
                         trajet, qualityAspect, qualityGreening, qualityScab, qualityScurf, qualityDamage, qualityRot
                     };
                     targetOrder = samplingOrders[index];
@@ -1866,7 +2176,7 @@
                 // CREATE MODE
                 const newOrder = {
                     id: 'order-' + Date.now(),
-                    lotNumber, variety, bacsCount, weight, producer, pickingCity, pickingAddress, driver, datetime, status, comment,
+                    lotNumber, variety, calibre, bacsCount, weight, producer, pickingCity, pickingAddress, driver, datetime, status, comment,
                     trajet, qualityAspect, qualityGreening, qualityScab, qualityScurf, qualityDamage, qualityRot
                 };
                 samplingOrders.push(newOrder);
@@ -1913,6 +2223,7 @@
 
             document.getElementById('form-bacs-count').value = order.bacsCount;
             document.getElementById('form-weight').value = order.weight;
+            document.getElementById('form-calibre').value = order.calibre || "";
             document.getElementById('form-producer').value = order.producer;
             document.getElementById('form-picking-city').value = order.pickingCity || "";
             document.getElementById('form-picking-address').value = order.pickingAddress || "";
@@ -2060,7 +2371,7 @@
                 return;
             }
 
-            const headers = ["Identifiant", "Numero de Lot", "Variete", "Nombre de bacs", "Poids total (kg)", "Poids moyen par bac (kg)", "Producteur", "Ville de picking", "Adresse précise", "Chauffeur", "Date heure prélèvement", "Statut", "Observations"];
+            const headers = ["Identifiant", "Numero de Lot", "Variete", "Calibre", "Nombre de bacs", "Poids total (kg)", "Poids moyen par bac (kg)", "Producteur", "Ville de picking", "Adresse précise", "Chauffeur", "Date heure prélèvement", "Statut", "Observations"];
 
             let csvRows = [headers.join(';')];
 
@@ -2070,6 +2381,7 @@
                     o.id,
                     `LOT-${o.lotNumber}`,
                     o.variety,
+                    o.calibre || "",
                     o.bacsCount,
                     o.weight.toString().replace('.', ','), // decimal separator for French excel
                     avg.toFixed(2).replace('.', ','),

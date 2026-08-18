@@ -454,17 +454,23 @@
                         <!-- Row 4.5: Picking Location (Lieu prenant) -->
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <label for="form-picking-city" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Ville de picking <span class="text-slate-400 font-normal">(Optionnel)</span></label>
-                                <input type="text" id="form-picking-city"
-                                    class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm placeholder-slate-400"
-                                    placeholder="Loudéac, Lamballe...">
+                                <label for="form-picking-city" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Lieu prenant</label>
+                                <select id="form-picking-city" onchange="handlePickingSiteChange(this.value)"
+                                    class="mt-1 block w-full py-2 px-3 border border-slate-300 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                                    <option value="">-- Choisir un site --</option>
+                                    <option value="Ploudaniel (29)">Ploudaniel (29)</option>
+                                    <option value="Beauce (28)">Beauce (28)</option>
+                                    <option value="Naizin (56)">Naizin (56)</option>
+                                    <option value="Kergrist (56)">Kergrist (56)</option>
+                                    <option value="Plumieux (56)">Plumieux (56)</option>
+                                </select>
                             </div>
 
                             <div>
                                 <label for="form-picking-address" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Adresse précise (Lieu prenant)</label>
                                 <input type="text" id="form-picking-address"
                                     class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm placeholder-slate-400"
-                                    placeholder="La Ville-Ès-Lan, 4 Rue de...">
+                                    placeholder="Remplie automatiquement, modifiable si besoin">
                             </div>
                         </div>
 
@@ -496,76 +502,6 @@
                                 </select>
                             </div>
                         </div>
-
-                        <!-- Visual Quality Section -->
-                        <div class="border-t border-slate-100 pt-4 space-y-3">
-                            <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-                                <i class="fa-solid fa-eye text-emerald-600"></i>
-                                <span>Qualité Visuelle</span>
-                            </h4>
-                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                <div>
-                                    <label for="form-quality-aspect" class="block text-[10px] font-semibold text-slate-500 uppercase">Aspect Global</label>
-                                    <select id="form-quality-aspect" class="mt-1 block w-full py-1.5 px-2 border border-slate-300 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs">
-                                        <option value="Non renseigné">Non renseigné</option>
-                                        <option value="Excellent">Excellent</option>
-                                        <option value="Satisfaisant">Satisfaisant</option>
-                                        <option value="Moyen">Moyen</option>
-                                        <option value="Médiocre">Médiocre</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label for="form-quality-greening" class="block text-[10px] font-semibold text-slate-500 uppercase">Verdissement</label>
-                                    <select id="form-quality-greening" class="mt-1 block w-full py-1.5 px-2 border border-slate-300 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs">
-                                        <option value="Non renseigné">Non renseigné</option>
-                                        <option value="Aucun">Aucun</option>
-                                        <option value="Léger">Léger</option>
-                                        <option value="Moyen">Moyen</option>
-                                        <option value="Important">Important</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label for="form-quality-scab" class="block text-[10px] font-semibold text-slate-500 uppercase">Gale Commune</label>
-                                    <select id="form-quality-scab" class="mt-1 block w-full py-1.5 px-2 border border-slate-300 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs">
-                                        <option value="Non renseigné">Non renseigné</option>
-                                        <option value="Aucune">Aucune</option>
-                                        <option value="Légère">Légère</option>
-                                        <option value="Moyenne">Moyenne</option>
-                                        <option value="Importante">Importante</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label for="form-quality-scurf" class="block text-[10px] font-semibold text-slate-500 uppercase">Gale Argentée</label>
-                                    <select id="form-quality-scurf" class="mt-1 block w-full py-1.5 px-2 border border-slate-300 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs">
-                                        <option value="Non renseigné">Non renseigné</option>
-                                        <option value="Aucune">Aucune</option>
-                                        <option value="Légère">Légère</option>
-                                        <option value="Moyenne">Moyenne</option>
-                                        <option value="Importante">Importante</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label for="form-quality-damage" class="block text-[10px] font-semibold text-slate-500 uppercase">Blessures/Défauts</label>
-                                    <select id="form-quality-damage" class="mt-1 block w-full py-1.5 px-2 border border-slate-300 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs">
-                                        <option value="Non renseigné">Non renseigné</option>
-                                        <option value="Aucune">Aucune</option>
-                                        <option value="Légère">Légère</option>
-                                        <option value="Moyenne">Moyenne</option>
-                                        <option value="Importante">Importante</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label for="form-quality-rot" class="block text-[10px] font-semibold text-slate-500 uppercase">Pourriture</label>
-                                    <select id="form-quality-rot" class="mt-1 block w-full py-1.5 px-2 border border-slate-300 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs">
-                                        <option value="Non renseigné">Non renseigné</option>
-                                        <option value="Aucune">Aucune</option>
-                                        <option value="Présence suspecte">Présence suspecte</option>
-                                        <option value="Avérée">Avérée</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-
 
                         <!-- Row 6: Comments -->
                         <div>
@@ -1858,6 +1794,19 @@
             }
         }
 
+        const PICKING_SITES = {
+            'Ploudaniel (29)': 'Rue Jean Mermoz, ZA de Mescoden, 29260 Ploudaniel',
+            'Beauce (28)': 'Ferme des Perrières, 5 rue des Perrières, 28800 Moriers',
+            'Naizin (56)': 'Adresse à préciser, 56500 Naizin',
+            'Kergrist (56)': '7 Linhouédec, 56300 Kergrist',
+            'Plumieux (56)': 'Adresse à préciser, 22210 Plumieux'
+        };
+
+        function handlePickingSiteChange(siteName) {
+            const addressInput = document.getElementById('form-picking-address');
+            if (addressInput) addressInput.value = PICKING_SITES[siteName] || '';
+        }
+
         function startAddLotToTrajet(trajetName) {
             resetForm();
             const select = document.getElementById('form-trajet-select');
@@ -1942,6 +1891,39 @@
             renderOrdersTable();
         }
 
+        async function renameTrajet(oldName) {
+            if (!oldName || oldName === 'Sans Trajet') return;
+            const newName = prompt('Nouveau nom de la tournée :', oldName);
+            if (newName === null) return;
+            const cleanName = newName.trim();
+            if (!cleanName || cleanName === oldName) return;
+            if (samplingOrders.some(order => order.trajet === cleanName)) {
+                showToast('Une tournée porte déjà ce nom.', 'warning');
+                return;
+            }
+
+            const ordersToMove = samplingOrders.filter(order => order.trajet === oldName);
+            if (!ordersToMove.length) return;
+            if (!confirm(`Renommer « ${oldName} » en « ${cleanName} » pour ${ordersToMove.length} lot(s) ?`)) return;
+
+            try {
+                for (const order of ordersToMove) {
+                    const previousTrajet = order.trajet;
+                    order.trajet = cleanName;
+                    await firestorePushOrder(order);
+                    await firestoreDeleteOrder(order.id, previousTrajet);
+                }
+                localStorage.setItem('lg_orders', JSON.stringify(samplingOrders));
+                collapsedTrajets.delete(oldName);
+                syncTrajetDropdown();
+                renderOrdersTable();
+                showToast(`Tournée renommée : ${cleanName}`, 'success');
+            } catch (error) {
+                console.error('Erreur renommage tournée :', error);
+                showToast('Le renommage n’a pas pu être terminé : ' + (error.message || error), 'error');
+            }
+        }
+
         function renderOrdersTable() {
             const tbody = document.getElementById('orders-tbody');
             const emptyState = document.getElementById('empty-state');
@@ -2000,23 +1982,33 @@
                 const groupLots = groups[trajetName];
                 const isCollapsed = collapsedTrajets.has(trajetName);
                 const chevronIcon = isCollapsed ? 'fa-chevron-right' : 'fa-chevron-down';
+                const progressPercent = Math.min(100, Math.round((groupLots.length / 22) * 100));
+                const completedLots = groupLots.filter(order => (order.status || '') === 'Terminé').length;
+                const totalBacs = groupLots.reduce((sum, order) => sum + Number(order.bacsCount || 0), 0);
 
                 rowsHTML += `
-                    <tr class="bg-slate-100/80 hover:bg-slate-200/50 cursor-pointer select-none transition border-y border-slate-200 no-print" onclick="toggleTrajetCollapse('${trajetName.replace(/'/g, "\\'")}')">
-                        <td colspan="6" class="px-4 py-2.5 text-xs font-bold text-slate-700">
-                            <div class="flex items-center justify-between">
-                                <span class="flex items-center gap-2">
+                    <tr class="bg-gradient-to-r from-emerald-50 to-slate-50 hover:from-emerald-100/70 cursor-pointer select-none transition border-y border-emerald-100 no-print" onclick="toggleTrajetCollapse('${trajetName.replace(/'/g, "\\'")}')">
+                        <td colspan="6" class="px-4 py-3 text-xs font-bold text-slate-700">
+                            <div class="flex flex-col gap-2">
+                                <div class="flex items-center justify-between gap-3">
+                                  <span class="flex min-w-0 items-center gap-2">
                                     <i class="fa-solid ${chevronIcon} text-slate-400 text-[10px]"></i>
                                     <i class="fa-solid fa-route text-emerald-600"></i>
-                                    <span>Trajet : ${trajetName}</span>
-                                </span>
-                                <div class="flex items-center gap-2">
-                                    <span class="bg-white/80 px-2 py-0.5 rounded-full text-[10px] text-slate-500 font-semibold border border-slate-200">
-                                        ${groupLots.length} lot(s)
+                                    <span class="truncate text-sm">${trajetName}</span>
+                                  </span>
+                                  <div class="flex shrink-0 items-center gap-1.5">
+                                    <span class="bg-white px-2 py-1 rounded-full text-[10px] text-emerald-700 font-extrabold border border-emerald-200">
+                                        ${groupLots.length}/22 lots
                                     </span>
+                                    ${trajetName !== 'Sans Trajet' ? `<button onclick="event.stopPropagation(); renameTrajet('${trajetName.replace(/'/g, "\\'")}')" class="bg-white hover:bg-amber-50 text-amber-700 border border-amber-200 font-bold text-[10px] p-1.5 rounded-lg transition" title="Renommer la tournée"><i class="fa-solid fa-pen"></i></button>` : ''}
                                     <button onclick="event.stopPropagation(); startAddLotToTrajet('${trajetName.replace(/'/g, "\\'")}')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] px-2 py-1 rounded transition flex items-center gap-1">
                                         <i class="fa-solid fa-plus text-[8px]"></i> Échantillon
                                     </button>
+                                  </div>
+                                </div>
+                                <div class="flex items-center gap-3 text-[10px] font-semibold text-slate-500">
+                                    <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-white border border-emerald-100"><div class="h-full rounded-full bg-emerald-500" style="width:${progressPercent}%"></div></div>
+                                    <span>${completedLots} terminé(s)</span><span>${totalBacs} bac(s)</span>
                                 </div>
                             </div>
                         </td>
@@ -2024,7 +2016,7 @@
                 `;
 
                 if (!isCollapsed) {
-                    groupLots.forEach(order => {
+                    groupLots.forEach((order, lotIndex) => {
                         const dateObj = new Date(order.datetime);
                         const formattedDate = dateObj.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' });
                         const formattedTime = dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
@@ -2054,7 +2046,7 @@
                                 <td class="px-4 py-3.5 whitespace-nowrap">
                                     <div class="space-y-1">
                                         <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold font-mono bg-emerald-100 text-emerald-800">
-                                            LOT-${order.lotNumber}
+                                            <span class="mr-1.5 text-emerald-500">#${lotIndex + 1}</span> LOT-${order.lotNumber}
                                         </span>
                                         <span class="block text-[9px] px-1.5 py-0.5 rounded border ${statusBadgeClass} text-center font-bold w-max">
                                             ${currentStatus}
@@ -2142,13 +2134,13 @@
             const trajetCustom = document.getElementById('form-trajet-custom').value.trim();
             const trajet = trajetSelect === '__NEW__' ? trajetCustom : trajetSelect;
 
-            // Visual quality fields
-            const qualityAspect = document.getElementById('form-quality-aspect').value;
-            const qualityGreening = document.getElementById('form-quality-greening').value;
-            const qualityScab = document.getElementById('form-quality-scab').value;
-            const qualityScurf = document.getElementById('form-quality-scurf').value;
-            const qualityDamage = document.getElementById('form-quality-damage').value;
-            const qualityRot = document.getElementById('form-quality-rot').value;
+            // Valeurs conservées pour la compatibilité avec les anciens exports.
+            const qualityAspect = 'Non renseigné';
+            const qualityGreening = 'Non renseigné';
+            const qualityScab = 'Non renseigné';
+            const qualityScurf = 'Non renseigné';
+            const qualityDamage = 'Non renseigné';
+            const qualityRot = 'Non renseigné';
 
             let targetOrder;
 
@@ -2225,7 +2217,9 @@
             document.getElementById('form-weight').value = order.weight;
             document.getElementById('form-calibre').value = order.calibre || "";
             document.getElementById('form-producer').value = order.producer;
-            document.getElementById('form-picking-city').value = order.pickingCity || "";
+            const pickingSiteSelect = document.getElementById('form-picking-city');
+            const knownSite = Object.keys(PICKING_SITES).find(site => site === order.pickingCity || site.startsWith((order.pickingCity || '') + ' '));
+            pickingSiteSelect.value = knownSite || "";
             document.getElementById('form-picking-address').value = order.pickingAddress || "";
             document.getElementById('form-driver').value = order.driver;
             document.getElementById('form-datetime').value = order.datetime;
@@ -2245,14 +2239,6 @@
                 selectTrajet.value = '';
                 handleTrajetSelectChange('');
             }
-
-            // Populate quality dropdowns safely
-            document.getElementById('form-quality-aspect').value = order.qualityAspect || "Satisfaisant";
-            document.getElementById('form-quality-greening').value = order.qualityGreening || "Aucun";
-            document.getElementById('form-quality-scab').value = order.qualityScab || "Aucune";
-            document.getElementById('form-quality-scurf').value = order.qualityScurf || "Aucune";
-            document.getElementById('form-quality-damage').value = order.qualityDamage || "Aucun";
-            document.getElementById('form-quality-rot').value = order.qualityRot || "Aucune";
 
             calculateInstantAverage();
 

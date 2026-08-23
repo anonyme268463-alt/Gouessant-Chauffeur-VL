@@ -416,9 +416,9 @@
                             <div>
                                 <label for="form-bacs-count" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Nombre de bacs <span class="text-slate-400 font-normal">(Optionnel)</span></label>
                                 <div class="mt-1 relative rounded-lg shadow-sm">
-                                    <input type="number" id="form-bacs-count" min="1" step="1" oninput="calculateInstantAverage()"
+                                    <input type="number" id="form-bacs-count" min="1" step="1" value="2" oninput="calculateInstantAverage()"
                                         class="block w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm font-semibold"
-                                        placeholder="1">
+                                        placeholder="2">
                                     <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                                         <span class="text-slate-400 text-xs font-medium">Bacs</span>
                                     </div>
@@ -428,9 +428,9 @@
                             <div>
                                 <label for="form-weight" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Poids total (kg) <span class="text-slate-400 font-normal">(Optionnel)</span></label>
                                 <div class="mt-1 relative rounded-lg shadow-sm">
-                                    <input type="number" id="form-weight" min="0.1" step="0.01" oninput="calculateInstantAverage()"
+                                    <input type="number" id="form-weight" min="0.1" step="0.01" value="20" oninput="calculateInstantAverage()"
                                         class="block w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm font-semibold"
-                                        placeholder="25.5">
+                                        placeholder="20">
                                     <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                                         <span class="text-slate-400 text-xs font-medium">kg</span>
                                     </div>
@@ -474,8 +474,8 @@
                             </div>
                         </div>
 
-                        <!-- Row 5: Driver, Date/Time & Transfer Status -->
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <!-- Row 5: Driver & Date/Time -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label for="form-driver" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Nom Chauffeur <span class="text-rose-500">*</span></label>
                                 <input type="text" id="form-driver" required
@@ -489,18 +489,6 @@
                                     class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-medium">
                             </div>
 
-                            <div>
-                                <label for="form-status" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Statut transfert <span class="text-rose-500">*</span></label>
-                                <select id="form-status" required
-                                    class="mt-1 block w-full py-2 px-3 border border-slate-300 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
-                                    <option value="En cours">En cours</option>
-                                    <option value="En route vers la prochaine destination">En route vers la prochaine destination</option>
-                                    <option value="En pause">En pause</option>
-                                    <option value="Sur le retour">Sur le retour</option>
-                                    <option value="Bloqué dans les bouchons">Bloqué dans les bouchons</option>
-                                    <option value="Terminé">Terminé</option>
-                                </select>
-                            </div>
                         </div>
 
                         <!-- Row 6: Comments -->
@@ -1305,6 +1293,47 @@
                 .toUpperCase();
         }
 
+        function ocrEditDistance(a, b) {
+            const left = normalizeOcrText(a).replace(/[^A-Z0-9]/g, '');
+            const right = normalizeOcrText(b).replace(/[^A-Z0-9]/g, '');
+            const row = Array.from({ length: right.length + 1 }, (_, index) => index);
+            for (let i = 1; i <= left.length; i++) {
+                let previous = row[0];
+                row[0] = i;
+                for (let j = 1; j <= right.length; j++) {
+                    const saved = row[j];
+                    row[j] = Math.min(row[j] + 1, row[j - 1] + 1, previous + (left[i - 1] === right[j - 1] ? 0 : 1));
+                    previous = saved;
+                }
+            }
+            return row[right.length];
+        }
+
+        function findOcrVariety(lines, joined) {
+            const availableVarieties = [...new Set([...(Array.isArray(varieties) ? varieties : []), ...OCR_VARIETIES])]
+                .filter(name => name && name !== 'Autre');
+            const exact = availableVarieties.find(name => new RegExp(`\\b${normalizeOcrText(name)}\\b`).test(joined));
+            if (exact) return exact;
+
+            const candidates = [];
+            lines.forEach((line, index) => {
+                const marker = line.match(/VARI[E3]T[E3]\s*[:\-]?\s*(.+)$/);
+                if (marker && marker[1]) candidates.push(marker[1]);
+                if (/VARI[E3]T[E3]/.test(line) && lines[index + 1]) candidates.push(lines[index + 1]);
+                if (/^[A-Z]{4,16}$/.test(line)) candidates.push(line);
+            });
+
+            let best = null;
+            for (const candidate of candidates) {
+                for (const name of availableVarieties) {
+                    const distance = ocrEditDistance(candidate.split(' ')[0], name);
+                    const limit = normalizeOcrText(name).length >= 8 ? 2 : 1;
+                    if (distance <= limit && (!best || distance < best.distance)) best = { name, distance };
+                }
+            }
+            return best ? best.name : '';
+        }
+
         function parseChronoLabelText(rawText) {
             const normalized = normalizeOcrText(rawText);
             const lines = normalized.split(/\r?\n/)
@@ -1317,14 +1346,24 @@
             const resolvedLot = lotMatch || compactLotMatch;
 
             let calibre = '';
-            for (const line of lines) {
-                const match = line.match(/\b(\d{2})\s*[\/-]\s*(\d{2})\b/);
-                if (!match || line.includes(':')) continue;
-                const min = Number(match[1]);
-                const max = Number(match[2]);
-                if (min >= 20 && max <= 99 && min < max) {
-                    calibre = `${match[1]}/${match[2]}`;
-                    break;
+            const calibreLines = lines.filter(line => /CAL[I1]BR|TOUT\s*V|\+\s*\d{2}/.test(line) || /^\s*\d{2}\s*[\/-]\s*\d{2}\s*$/.test(line));
+            const calibreText = calibreLines.join(' ');
+            if (/TOUT\s*V[E3]N[A4]NT|TOUTVENANT/.test(calibreText)) {
+                calibre = 'ToutVenant';
+            } else {
+                const rangeMatch = calibreText.match(/(?:CAL[I1]BR[E3]?\s*[:\-]?\s*)?\b(\d{2})\s*[\/-]\s*(\d{2})\b/);
+                if (rangeMatch) {
+                    const min = Number(rangeMatch[1]);
+                    const max = Number(rangeMatch[2]);
+                    if (min >= 20 && max <= 99 && min < max) calibre = `${rangeMatch[1]}/${rangeMatch[2]}`;
+                }
+                if (!calibre) {
+                    const plusMatch = calibreText.match(/\+\s*(\d{2})\b/);
+                    if (plusMatch) calibre = `+${plusMatch[1]}`;
+                }
+                if (!calibre) {
+                    const labelledSingle = calibreText.match(/CAL[I1]BR[E3]?\s*[:\-]?\s*(\d{2})\b/);
+                    if (labelledSingle) calibre = `+${labelledSingle[1]}`;
                 }
             }
 
@@ -1338,23 +1377,31 @@
                 datetimeDisplay = `${day}/${month}/${rawYear.slice(-2)} à ${hour.padStart(2, '0')}:${minute}`;
             }
 
-            const variety = OCR_VARIETIES.find(name => {
-                const token = normalizeOcrText(name);
-                return new RegExp(`\\b${token}\\b`).test(joined);
-            }) || '';
+            const variety = findOcrVariety(lines, joined);
 
+            let producer = '';
+            const producerMarkerIndex = lines.findIndex(line => /EXPLO[I1]TANT|PRODUCTEUR/.test(line));
+            if (producerMarkerIndex >= 0) {
+                producer = lines[producerMarkerIndex].replace(/^.*?(?:EXPLO[I1]TANT|PRODUCTEUR)\s*[:\-]?\s*/, '').trim();
+                if (!producer && lines[producerMarkerIndex + 1]) producer = lines[producerMarkerIndex + 1];
+            }
             const producerLine = lines.find(line => {
                 return /\([A-Z]{2,5}\)/.test(line)
                     && !/(PRESENCE|GALE|TAUPIN|GGN|LOT)/.test(line)
                     && line.length <= 45;
             });
-            const producer = producerLine ? producerLine.replace(/^[^A-ZÀ-Ÿ]+/, '').trim() : '';
+            if (!producer && producerLine) producer = producerLine.replace(/^[^A-ZÀ-Ÿ]+/, '').trim();
+            producer = producer.replace(/^(EXPLO[I1]TANT|PRODUCTEUR)\s*[:\-]?\s*/, '').trim();
 
-            const defectLines = lines.filter(line => /(PRESENCE|GALE|TAUPIN)/.test(line));
+            const defectLines = lines.filter(line => /(PRESENCE|GALE|TAUPIN|RHIZOCT|POURRIT|BLESSURE|VERDISSEMENT)/.test(line));
             const defectText = defectLines.join(' ');
             const detectedDefects = [];
             if (/GALE/.test(defectText)) detectedDefects.push('Gale');
             if (/TAUPINS?/.test(defectText)) detectedDefects.push('Taupins');
+            if (/RHIZOCT/.test(defectText)) detectedDefects.push('Rhizoctone');
+            if (/POURRIT/.test(defectText)) detectedDefects.push('Pourriture');
+            if (/BLESSURE/.test(defectText)) detectedDefects.push('Blessures');
+            if (/VERDISSEMENT/.test(defectText)) detectedDefects.push('Verdissement');
             let defects = '';
             if (detectedDefects.length === 1) defects = `Présence ${detectedDefects[0]}`;
             if (detectedDefects.length > 1) defects = `Présence ${detectedDefects.slice(0, -1).join(', ')} et ${detectedDefects.at(-1)}`;
@@ -1368,6 +1415,50 @@
                 defects,
                 producer
             };
+        }
+
+        async function prepareChronoOcrImages(file) {
+            const bitmap = await createImageBitmap(file);
+            const cropX = Math.round(bitmap.width * 0.06);
+            const cropY = Math.round(bitmap.height * 0.06);
+            const cropWidth = bitmap.width - cropX * 2;
+            const cropHeight = bitmap.height - cropY * 2;
+            const scale = Math.min(2.2, Math.max(1, 2200 / cropWidth));
+            const width = Math.round(cropWidth * scale);
+            const height = Math.round(cropHeight * scale);
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const context = canvas.getContext('2d', { willReadFrequently: true });
+            context.imageSmoothingEnabled = true;
+            context.imageSmoothingQuality = 'high';
+            context.drawImage(bitmap, cropX, cropY, cropWidth, cropHeight, 0, 0, width, height);
+            if (bitmap.close) bitmap.close();
+
+            const imageData = context.getImageData(0, 0, width, height);
+            const pixels = imageData.data;
+            let luminanceSum = 0;
+            for (let i = 0; i < pixels.length; i += 4) luminanceSum += pixels[i] * 0.299 + pixels[i + 1] * 0.587 + pixels[i + 2] * 0.114;
+            const average = luminanceSum / (pixels.length / 4);
+            const threshold = Math.max(115, Math.min(205, average * 0.92));
+
+            const contrastCanvas = document.createElement('canvas');
+            contrastCanvas.width = width;
+            contrastCanvas.height = height;
+            const contrastContext = contrastCanvas.getContext('2d');
+            const binaryData = new ImageData(new Uint8ClampedArray(pixels), width, height);
+
+            for (let i = 0; i < pixels.length; i += 4) {
+                const gray = pixels[i] * 0.299 + pixels[i + 1] * 0.587 + pixels[i + 2] * 0.114;
+                const contrasted = Math.max(0, Math.min(255, (gray - 128) * 1.65 + 128));
+                pixels[i] = pixels[i + 1] = pixels[i + 2] = contrasted;
+                const binary = gray > threshold ? 255 : 0;
+                binaryData.data[i] = binaryData.data[i + 1] = binaryData.data[i + 2] = binary;
+                binaryData.data[i + 3] = 255;
+            }
+            context.putImageData(imageData, 0, 0);
+            contrastContext.putImageData(binaryData, 0, 0);
+            return [canvas, contrastCanvas];
         }
 
         function renderChronoOcrResult(data) {
@@ -1416,6 +1507,7 @@
                     }
                 })();
 
+                const [enhancedImage, binaryImage] = await prepareChronoOcrImages(file);
                 ocrWorker = await Tesseract.createWorker('fra', 1, {
                     logger: message => {
                         if (message.status === 'recognizing text') {
@@ -1425,20 +1517,20 @@
                     }
                 });
                 await ocrWorker.setParameters({
-                    tessedit_pageseg_mode: '3',
+                    tessedit_pageseg_mode: '6',
                     preserve_interword_spaces: '1'
                 });
-                const firstPass = await ocrWorker.recognize(file);
+                const firstPass = await ocrWorker.recognize(enhancedImage, { rotateAuto: true });
 
                 let combinedText = firstPass.data.text;
                 let parsedData = parseChronoLabelText(combinedText);
-                if (!parsedData.defects || !parsedData.calibre || !parsedData.producer) {
+                if ([parsedData.variety, parsedData.calibre, parsedData.datetime, parsedData.defects, parsedData.producer].some(value => !value)) {
                     ocrPassLabel = 'Lecture détaillée';
                     setLotScannerStatus('Deuxième lecture des petites lignes de l’étiquette…', 'info');
                     await ocrWorker.setParameters({
                         tessedit_pageseg_mode: '11'
                     });
-                    const secondPass = await ocrWorker.recognize(file);
+                    const secondPass = await ocrWorker.recognize(binaryImage, { rotateAuto: true });
                     combinedText += `\n${secondPass.data.text}`;
                     parsedData = parseChronoLabelText(combinedText);
                 }
@@ -1924,6 +2016,38 @@
             }
         }
 
+        const TRAJET_STATUSES = [
+            'En cours',
+            'En route vers la prochaine destination',
+            'En pause',
+            'Sur le retour',
+            'Bloqué dans les bouchons',
+            'Terminé'
+        ];
+
+        async function updateTrajetStatus(trajetName, newStatus, selectElement) {
+            if (!newStatus || !TRAJET_STATUSES.includes(newStatus)) return;
+            const realTrajet = trajetName === 'Sans Trajet' ? '' : trajetName;
+            const ordersToUpdate = samplingOrders.filter(order => (order.trajet || '') === realTrajet);
+            if (!ordersToUpdate.length) return;
+
+            if (selectElement) selectElement.disabled = true;
+            const previousStatuses = ordersToUpdate.map(order => order.status || 'En cours');
+            ordersToUpdate.forEach(order => { order.status = newStatus; });
+            renderOrdersTable();
+
+            try {
+                for (const order of ordersToUpdate) await firestorePushOrder(order);
+                localStorage.setItem('lg_orders', JSON.stringify(samplingOrders));
+                showToast(`Statut « ${newStatus} » appliqué aux ${ordersToUpdate.length} lots de la tournée.`, 'success');
+            } catch (error) {
+                ordersToUpdate.forEach((order, index) => { order.status = previousStatuses[index]; });
+                renderOrdersTable();
+                console.error('Erreur statut tournée :', error);
+                showToast('Impossible de modifier tous les lots : ' + (error.message || error), 'error');
+            }
+        }
+
         function renderOrdersTable() {
             const tbody = document.getElementById('orders-tbody');
             const emptyState = document.getElementById('empty-state');
@@ -1985,6 +2109,9 @@
                 const progressPercent = Math.min(100, Math.round((groupLots.length / 22) * 100));
                 const completedLots = groupLots.filter(order => (order.status || '') === 'Terminé').length;
                 const totalBacs = groupLots.reduce((sum, order) => sum + Number(order.bacsCount || 0), 0);
+                const groupStatuses = [...new Set(groupLots.map(order => order.status || 'En cours'))];
+                const groupStatus = groupStatuses.length === 1 ? groupStatuses[0] : '';
+                const statusOptions = TRAJET_STATUSES.map(status => `<option value="${status}" ${status === groupStatus ? 'selected' : ''}>${status}</option>`).join('');
 
                 rowsHTML += `
                     <tr class="bg-gradient-to-r from-emerald-50 to-slate-50 hover:from-emerald-100/70 cursor-pointer select-none transition border-y border-emerald-100 no-print" onclick="toggleTrajetCollapse('${trajetName.replace(/'/g, "\\'")}')">
@@ -1997,6 +2124,9 @@
                                     <span class="truncate text-sm">${trajetName}</span>
                                   </span>
                                   <div class="flex shrink-0 items-center gap-1.5">
+                                    <select onclick="event.stopPropagation()" onchange="event.stopPropagation(); updateTrajetStatus('${trajetName.replace(/'/g, "\\'")}', this.value, this)" class="max-w-[190px] rounded-lg border border-slate-300 bg-white px-2 py-1 text-[10px] font-bold text-slate-700 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500" title="Modifier le statut de tous les lots">
+                                        ${groupStatus ? '' : '<option value="" selected disabled>Statuts mixtes</option>'}${statusOptions}
+                                    </select>
                                     <span class="bg-white px-2 py-1 rounded-full text-[10px] text-emerald-700 font-extrabold border border-emerald-200">
                                         ${groupLots.length}/22 lots
                                     </span>
@@ -2127,12 +2257,17 @@
             const pickingAddress = document.getElementById('form-picking-address').value.trim() || "";
             const driver = document.getElementById('form-driver').value.trim();
             const datetime = document.getElementById('form-datetime').value;
-            const status = document.getElementById('form-status').value;
             const comment = document.getElementById('form-comment').value.trim();
 
             const trajetSelect = document.getElementById('form-trajet-select').value;
             const trajetCustom = document.getElementById('form-trajet-custom').value.trim();
             const trajet = trajetSelect === '__NEW__' ? trajetCustom : trajetSelect;
+            const editingOrder = orderIdField ? samplingOrders.find(order => order.id === orderIdField) : null;
+            const existingTrajetOrder = samplingOrders.find(order => (order.trajet || '') === (trajet || ''));
+            const staysInSameTrajet = editingOrder && (editingOrder.trajet || '') === (trajet || '');
+            const status = staysInSameTrajet
+                ? (editingOrder.status || 'En cours')
+                : (existingTrajetOrder?.status || editingOrder?.status || 'En cours');
 
             // Valeurs conservées pour la compatibilité avec les anciens exports.
             const qualityAspect = 'Non renseigné';
@@ -2223,7 +2358,6 @@
             document.getElementById('form-picking-address').value = order.pickingAddress || "";
             document.getElementById('form-driver').value = order.driver;
             document.getElementById('form-datetime').value = order.datetime;
-            document.getElementById('form-status').value = order.status || "En cours";
             document.getElementById('form-comment').value = order.comment;
 
             // Setup trajet select / custom inputs
@@ -2286,8 +2420,10 @@
             syncTrajetDropdown();
             handleTrajetSelectChange("");
 
-            // Set default status to "En cours"
-            document.getElementById('form-status').value = "En cours";
+            // Standard values for each new sample.
+            document.getElementById('form-bacs-count').value = "2";
+            document.getElementById('form-weight').value = "20";
+            calculateInstantAverage();
 
             // Setup datetime default to local timezone correct format
             const now = new Date();

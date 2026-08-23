@@ -584,12 +584,12 @@
                             <table class="w-full table-fixed divide-y divide-slate-100">
                                 <thead class="bg-slate-50">
                                     <tr>
-                                        <th scope="col" class="w-[24%] px-2 py-3 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider">Lot</th>
+                                        <th scope="col" class="w-[27%] px-2 py-3 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Lot</th>
                                         <th scope="col" class="w-[14%] px-2 py-3 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider">Variété</th>
                                         <th scope="col" class="w-[7%] px-1 py-3 text-right text-[10px] font-bold text-slate-400 uppercase tracking-wider">Bacs</th>
                                         <th scope="col" class="w-[10%] px-1 py-3 text-right text-[10px] font-bold text-slate-400 uppercase tracking-wider">Poids</th>
-                                        <th scope="col" class="w-[25%] px-2 py-3 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider">Exploitant / Date</th>
-                                        <th scope="col" class="relative w-[20%] px-2 py-3">
+                                        <th scope="col" class="w-[23%] px-2 py-3 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider">Exploitant / Date</th>
+                                        <th scope="col" class="relative w-[19%] px-2 py-3">
                                             <span class="sr-only">Actions</span>
                                         </th>
                                     </tr>
@@ -2175,8 +2175,11 @@
                             <tr class="hover:bg-slate-50/70 transition duration-150">
                                 <td class="px-2 py-3 align-top">
                                     <div class="space-y-1">
-                                        <span class="inline-flex max-w-full items-center break-all rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold font-mono leading-tight text-emerald-800">
-                                            <span class="mr-1.5 text-emerald-500">#${lotIndex + 1}</span> LOT-${order.lotNumber}
+                                        <span class="inline-flex max-w-full items-center rounded bg-emerald-100 px-2 py-1 text-xs font-extrabold font-mono leading-snug text-emerald-900 shadow-sm sm:whitespace-nowrap">
+                                            <span class="mr-1.5 text-[10px] text-emerald-500">#${lotIndex + 1}</span><span class="break-all sm:break-normal">LOT-${order.lotNumber}</span>
+                                        </span>
+                                        <span class="block w-fit max-w-full break-words rounded border px-1.5 py-0.5 text-[9px] font-bold leading-tight ${statusBadgeClass}">
+                                            ${currentStatus}
                                         </span>
                                     </div>
                                 </td>

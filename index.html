@@ -991,6 +991,87 @@
         </div>
     </div>
 
+    <!-- ROUTE SCHEDULE MODAL -->
+    <div id="route-schedule-modal" class="hidden fixed inset-0 z-[75] overflow-y-auto bg-slate-950/70 p-3 sm:p-6 no-print" role="dialog" aria-modal="true" aria-labelledby="route-schedule-title">
+        <div class="mx-auto my-4 w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+            <div class="flex items-start justify-between gap-4 bg-gradient-to-r from-emerald-800 to-emerald-700 p-5 text-white">
+                <div>
+                    <h2 id="route-schedule-title" class="flex items-center gap-2 text-lg font-extrabold">
+                        <i class="fa-solid fa-van-shuttle text-brand-yellow"></i>
+                        Planning routier
+                    </h2>
+                    <p id="route-schedule-trajet-name" class="mt-1 text-xs font-semibold text-emerald-100"></p>
+                </div>
+                <button type="button" onclick="closeRouteSchedule()" class="rounded-full p-2 text-emerald-100 transition hover:bg-white/10 hover:text-white" aria-label="Fermer le planning">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+
+            <div class="space-y-5 p-5">
+                <div class="rounded-xl border border-blue-100 bg-blue-50 p-3 text-xs leading-relaxed text-blue-800">
+                    <i class="fa-solid fa-circle-info mr-1.5"></i>Les fins de pauses sont calculées automatiquement : <strong>15 minutes</strong> pour une pause routière et <strong>1 heure</strong> pour le déjeuner.
+                </div>
+
+                <div class="grid grid-cols-1 gap-4">
+                    <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Départ initial de Lamballe
+                        <input id="route-initial-departure" type="time" onchange="updateRouteScheduleCalculations()" class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-base font-bold text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    </label>
+                </div>
+
+                <div class="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                    <div class="mb-3 flex items-center justify-between gap-3">
+                        <h3 class="text-xs font-extrabold uppercase tracking-wider text-amber-800"><i class="fa-solid fa-mug-hot mr-1.5"></i>Première pause routière</h3>
+                        <span class="rounded-full bg-white px-2 py-1 text-[10px] font-bold text-amber-700">15 min</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <label class="text-[10px] font-bold uppercase text-slate-500">Début<input id="route-road-pause-1" type="time" oninput="updateRouteScheduleCalculations()" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-bold"></label>
+                        <label class="text-[10px] font-bold uppercase text-slate-500">Fin automatique<input id="route-road-pause-1-end" type="time" readonly class="mt-1 block w-full rounded-lg border border-amber-200 bg-amber-100/70 px-3 py-2 text-sm font-bold text-amber-900"></label>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Arrivée au dépôt <span class="font-normal normal-case text-slate-400">(facultatif)</span>
+                        <input id="route-depot-arrival" type="time" class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-base font-bold text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    </label>
+                    <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Départ du dépôt / retour <span class="font-normal normal-case text-slate-400">(facultatif)</span>
+                        <input id="route-depot-departure" type="time" class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-base font-bold text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    </label>
+                </div>
+
+                <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                    <div class="mb-3 flex items-center justify-between gap-3">
+                        <h3 class="text-xs font-extrabold uppercase tracking-wider text-emerald-800"><i class="fa-solid fa-utensils mr-1.5"></i>Pause déjeuner</h3>
+                        <span class="rounded-full bg-white px-2 py-1 text-[10px] font-bold text-emerald-700">1 heure</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <label class="text-[10px] font-bold uppercase text-slate-500">Début<input id="route-lunch-pause" type="time" oninput="updateRouteScheduleCalculations()" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-bold"></label>
+                        <label class="text-[10px] font-bold uppercase text-slate-500">Fin automatique<input id="route-lunch-pause-end" type="time" readonly class="mt-1 block w-full rounded-lg border border-emerald-200 bg-emerald-100/70 px-3 py-2 text-sm font-bold text-emerald-900"></label>
+                    </div>
+                </div>
+
+                <div id="route-second-pause-section" class="rounded-xl border border-indigo-200 bg-indigo-50 p-4">
+                    <div class="mb-3 flex items-center justify-between gap-3">
+                        <h3 class="text-xs font-extrabold uppercase tracking-wider text-indigo-800"><i class="fa-solid fa-road mr-1.5"></i>Deuxième pause routière</h3>
+                        <span id="route-second-pause-hint" class="rounded-full bg-white px-2 py-1 text-[10px] font-bold text-indigo-700">Facultative · 15 min</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <label class="text-[10px] font-bold uppercase text-slate-500">Début<input id="route-road-pause-2" type="time" oninput="updateRouteScheduleCalculations()" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-bold"></label>
+                        <label class="text-[10px] font-bold uppercase text-slate-500">Fin automatique<input id="route-road-pause-2-end" type="time" readonly class="mt-1 block w-full rounded-lg border border-indigo-200 bg-indigo-100/70 px-3 py-2 text-sm font-bold text-indigo-900"></label>
+                    </div>
+                </div>
+
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-500">Arrivée finale à Lamballe <span class="font-normal normal-case text-slate-400">(facultatif)</span>
+                    <input id="route-final-arrival" type="time" class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-base font-bold text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                </label>
+            </div>
+
+            <div class="flex gap-3 border-t border-slate-100 bg-slate-50 p-4">
+                <button type="button" onclick="closeRouteSchedule()" class="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100">Annuler</button>
+                <button id="route-schedule-save" type="button" onclick="saveRouteSchedule()" class="flex-1 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white shadow hover:bg-emerald-700"><i class="fa-solid fa-floppy-disk mr-1.5"></i>Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
 
     <!-- CHRONO LABEL CAMERA / OCR MODAL -->
     <div id="lot-scanner-modal" class="hidden fixed inset-0 z-[70] bg-slate-950/80 p-3 sm:p-6 no-print" role="dialog" aria-modal="true" aria-labelledby="lot-scanner-title">
@@ -2016,6 +2097,95 @@
             }
         }
 
+        let currentRouteScheduleTrajet = null;
+
+        function addMinutesToTime(timeValue, minutesToAdd) {
+            if (!timeValue || !/^\d{2}:\d{2}$/.test(timeValue)) return '';
+            const [hours, minutes] = timeValue.split(':').map(Number);
+            const total = (hours * 60 + minutes + minutesToAdd) % (24 * 60);
+            return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+        }
+
+        function updateRouteScheduleCalculations() {
+            document.getElementById('route-road-pause-1-end').value = addMinutesToTime(document.getElementById('route-road-pause-1').value, 15);
+            document.getElementById('route-lunch-pause-end').value = addMinutesToTime(document.getElementById('route-lunch-pause').value, 60);
+            document.getElementById('route-road-pause-2-end').value = addMinutesToTime(document.getElementById('route-road-pause-2').value, 15);
+        }
+
+        function openRouteSchedule(trajetName) {
+            const realTrajet = trajetName === 'Sans Trajet' ? '' : trajetName;
+            const routeOrders = samplingOrders.filter(order => (order.trajet || '') === realTrajet);
+            if (!routeOrders.length) return;
+            currentRouteScheduleTrajet = trajetName;
+            const schedule = routeOrders.find(order => order.routeSchedule)?.routeSchedule || {};
+            const isBeauce = /BEAUCE/i.test(trajetName) || routeOrders.some(order => /BEAUCE/i.test(order.pickingCity || ''));
+
+            document.getElementById('route-schedule-trajet-name').textContent = trajetName;
+            document.getElementById('route-initial-departure').value = schedule.initialDeparture || '';
+            document.getElementById('route-road-pause-1').value = schedule.roadPause1 || '';
+            document.getElementById('route-depot-arrival').value = schedule.depotArrival || '';
+            document.getElementById('route-depot-departure').value = schedule.depotDeparture || '';
+            document.getElementById('route-lunch-pause').value = schedule.lunchPause || '';
+            document.getElementById('route-road-pause-2').value = schedule.roadPause2 || '';
+            document.getElementById('route-final-arrival').value = schedule.finalArrival || '';
+            document.getElementById('route-second-pause-hint').textContent = isBeauce ? 'Beauce · 15 min' : 'Facultative · 15 min';
+            updateRouteScheduleCalculations();
+
+            document.getElementById('route-schedule-modal').classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+        }
+
+        function closeRouteSchedule() {
+            document.getElementById('route-schedule-modal').classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+            currentRouteScheduleTrajet = null;
+        }
+
+        async function saveRouteSchedule() {
+            if (currentRouteScheduleTrajet === null) return;
+            const realTrajet = currentRouteScheduleTrajet === 'Sans Trajet' ? '' : currentRouteScheduleTrajet;
+            const routeOrders = samplingOrders.filter(order => (order.trajet || '') === realTrajet);
+            if (!routeOrders.length) return;
+
+            const schedule = {
+                initialDeparture: document.getElementById('route-initial-departure').value,
+                roadPause1: document.getElementById('route-road-pause-1').value,
+                roadPause1End: document.getElementById('route-road-pause-1-end').value,
+                depotArrival: document.getElementById('route-depot-arrival').value,
+                depotDeparture: document.getElementById('route-depot-departure').value,
+                lunchPause: document.getElementById('route-lunch-pause').value,
+                lunchPauseEnd: document.getElementById('route-lunch-pause-end').value,
+                roadPause2: document.getElementById('route-road-pause-2').value,
+                roadPause2End: document.getElementById('route-road-pause-2-end').value,
+                finalArrival: document.getElementById('route-final-arrival').value,
+                updatedAt: new Date().toISOString(),
+                updatedBy: currentUser ? currentUser.fullname : ''
+            };
+
+            const previousSchedules = routeOrders.map(order => order.routeSchedule ? { ...order.routeSchedule } : null);
+            routeOrders.forEach(order => { order.routeSchedule = { ...schedule }; });
+            localStorage.setItem('lg_orders', JSON.stringify(samplingOrders));
+            renderOrdersTable();
+
+            const saveButton = document.getElementById('route-schedule-save');
+            saveButton.disabled = true;
+            saveButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1.5"></i>Enregistrement…';
+            try {
+                for (const order of routeOrders) await firestorePushOrder(order);
+                closeRouteSchedule();
+                showToast(`Planning routier enregistré pour ${routeOrders.length} lot(s).`, 'success');
+            } catch (error) {
+                routeOrders.forEach((order, index) => { order.routeSchedule = previousSchedules[index]; });
+                localStorage.setItem('lg_orders', JSON.stringify(samplingOrders));
+                renderOrdersTable();
+                console.error('Erreur planning routier :', error);
+                showToast('Impossible d’enregistrer le planning : ' + (error.message || error), 'error');
+            } finally {
+                saveButton.disabled = false;
+                saveButton.innerHTML = '<i class="fa-solid fa-floppy-disk mr-1.5"></i>Enregistrer';
+            }
+        }
+
         const TRAJET_STATUSES = [
             'En cours',
             'En route vers la prochaine destination',
@@ -2112,6 +2282,7 @@
                 const groupStatuses = [...new Set(groupLots.map(order => order.status || 'En cours'))];
                 const groupStatus = groupStatuses.length === 1 ? groupStatuses[0] : '';
                 const statusOptions = TRAJET_STATUSES.map(status => `<option value="${status}" ${status === groupStatus ? 'selected' : ''}>${status}</option>`).join('');
+                const routeSchedule = groupLots.find(order => order.routeSchedule)?.routeSchedule || null;
 
                 rowsHTML += `
                     <tr class="bg-gradient-to-r from-emerald-50 to-slate-50 hover:from-emerald-100/70 cursor-pointer select-none transition border-y border-emerald-100 no-print" onclick="toggleTrajetCollapse('${trajetName.replace(/'/g, "\\'")}')">
@@ -2130,6 +2301,7 @@
                                     <span class="bg-white px-2 py-1 rounded-full text-[10px] text-emerald-700 font-extrabold border border-emerald-200">
                                         ${groupLots.length}/22 lots
                                     </span>
+                                    <button onclick="event.stopPropagation(); openRouteSchedule('${trajetName.replace(/'/g, "\\'")}')" class="${routeSchedule ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700' : 'bg-white text-blue-700 border-blue-200 hover:bg-blue-50'} border font-bold text-[10px] p-1.5 rounded-lg transition" title="${routeSchedule ? `Planning routier${routeSchedule.initialDeparture ? ` · départ ${routeSchedule.initialDeparture}` : ''}` : 'Ajouter le planning routier'}"><i class="fa-solid fa-van-shuttle"></i></button>
                                     ${trajetName !== 'Sans Trajet' ? `<button onclick="event.stopPropagation(); renameTrajet('${trajetName.replace(/'/g, "\\'")}')" class="bg-white hover:bg-amber-50 text-amber-700 border border-amber-200 font-bold text-[10px] p-1.5 rounded-lg transition" title="Renommer la tournée"><i class="fa-solid fa-pen"></i></button>` : ''}
                                     <button onclick="event.stopPropagation(); startAddLotToTrajet('${trajetName.replace(/'/g, "\\'")}')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] px-2 py-1 rounded transition flex items-center gap-1" title="Ajouter un échantillon">
                                         <i class="fa-solid fa-plus text-[8px]"></i> Lot
@@ -2290,7 +2462,10 @@
 
                     samplingOrders[index] = {
                         id: orderIdField, lotNumber, variety, calibre, bacsCount, weight, producer, pickingCity, pickingAddress, driver, datetime, status, comment,
-                        trajet, qualityAspect, qualityGreening, qualityScab, qualityScurf, qualityDamage, qualityRot
+                        trajet, qualityAspect, qualityGreening, qualityScab, qualityScurf, qualityDamage, qualityRot,
+                        routeSchedule: oldTrajet === trajet
+                            ? (oldOrder.routeSchedule || null)
+                            : (existingTrajetOrder?.routeSchedule || oldOrder.routeSchedule || null)
                     };
                     targetOrder = samplingOrders[index];
 
@@ -2306,7 +2481,8 @@
                 const newOrder = {
                     id: 'order-' + Date.now(),
                     lotNumber, variety, calibre, bacsCount, weight, producer, pickingCity, pickingAddress, driver, datetime, status, comment,
-                    trajet, qualityAspect, qualityGreening, qualityScab, qualityScurf, qualityDamage, qualityRot
+                    trajet, qualityAspect, qualityGreening, qualityScab, qualityScurf, qualityDamage, qualityRot,
+                    routeSchedule: existingTrajetOrder?.routeSchedule || null
                 };
                 samplingOrders.push(newOrder);
                 targetOrder = newOrder;
@@ -3378,6 +3554,7 @@
                 comment: data.comment ?? data.Observations ?? '',
                 trajet: data.trajet ?? data.Trajet ?? parentTrajet,
                 tourNumber: data.tourNumber ?? data['Numéro de tournée'] ?? '',
+                routeSchedule: data.routeSchedule ?? data['Planning routier'] ?? null,
                 qualityAspect: data.qualityAspect ?? data.Aspect ?? 'Non renseigné',
                 qualityGreening: data.qualityGreening ?? data.Verdissement ?? 'Non renseigné',
                 qualityScab: data.qualityScab ?? data['Gale Commune'] ?? 'Non renseigné',
@@ -3410,6 +3587,7 @@
                 'Blessures/Défauts': order.qualityDamage || 'Non renseigné',
                 Pourriture: order.qualityRot || 'Non renseigné',
                 'Numéro de tournée': order.tourNumber || '',
+                'Planning routier': order.routeSchedule || null,
                 'Dernière modification': firebase.firestore.FieldValue.serverTimestamp()
             };
         }

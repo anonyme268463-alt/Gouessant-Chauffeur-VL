@@ -218,6 +218,10 @@
                     </div>
 
                     <div class="flex items-center gap-4">
+                        <button id="header-page-toggle" onclick="showAppPage('stocks')" class="inline-flex items-center gap-1.5 rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 transition hover:bg-emerald-100" title="Suivi des bacs par dépôt">
+                            <i class="fa-solid fa-pallet"></i>
+                            <span class="hidden md:inline">Stock des bacs</span>
+                        </button>
                         <!-- Intersession Connection status badge -->
                         <div id="intersession-badge" class="hidden sm:flex items-center gap-1.5 bg-blue-50 border border-blue-100 px-2.5 py-1.5 rounded-full" title="Intersession active (restaurée)">
                             <i class="fa-solid fa-key text-blue-500 text-[10px]"></i>
@@ -251,7 +255,7 @@
         </header>
 
         <!-- Main Workspace Grid -->
-        <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+        <main id="sampling-page" class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
 
             <!-- KPI Summary Dashboard -->
             <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 no-print">
@@ -604,6 +608,85 @@
                         </div>
                     </div>
                 </div>
+            </div>
+        </main>
+
+        <main id="crate-stock-page" class="hidden flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h1 class="text-2xl font-extrabold text-slate-800"><i class="fa-solid fa-pallet mr-2 text-emerald-600"></i>Stock des bacs par dépôt</h1>
+                    <p class="mt-1 text-sm text-slate-500">Suivez les apports, les bacs ramenés avec les échantillons et le stock restant après chaque passage.</p>
+                </div>
+                <button onclick="showAppPage('sampling')" class="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50">
+                    <i class="fa-solid fa-arrow-left"></i>Retour aux tournées
+                </button>
+            </div>
+
+            <section id="depot-stock-cards" class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5"></section>
+
+            <div class="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-start">
+                <section class="rounded-2xl border border-slate-100 bg-white shadow-sm lg:col-span-4">
+                    <div class="rounded-t-2xl bg-gradient-to-r from-emerald-800 to-emerald-700 p-5 text-white">
+                        <h2 class="font-bold"><i class="fa-solid fa-clipboard-list mr-2 text-lime-300"></i>Enregistrer un passage</h2>
+                        <p class="mt-1 text-xs text-emerald-100">Le stock initial reprend automatiquement le dernier stock connu.</p>
+                    </div>
+                    <form id="depot-stock-form" onsubmit="saveDepotStockEntry(event)" class="space-y-4 p-5">
+                        <input id="depot-stock-id" type="hidden">
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-500">Dépôt *</label>
+                            <select id="depot-stock-site" required onchange="refreshDepotStockForm()" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"></select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-500">Date du passage *</label>
+                            <input id="depot-stock-date" type="date" required onchange="refreshDepotStockForm()" class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-500">Tournée associée</label>
+                            <select id="depot-stock-trajet" onchange="fillReturnedCratesFromTour()" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"></select>
+                            <p class="mt-1 text-[10px] text-slate-400">Le nombre de bacs ramenés est calculé à partir des lots de cette tournée.</p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500">Stock initial</label>
+                                <input id="depot-stock-initial" type="number" min="0" required oninput="calculateDepotStock()" class="mt-1 block w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500">Bacs apportés</label>
+                                <input id="depot-stock-delivered" type="number" min="0" value="0" required oninput="calculateDepotStock()" class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500">Bacs ramenés</label>
+                                <input id="depot-stock-returned" type="number" min="0" value="0" required oninput="calculateDepotStock()" class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold uppercase tracking-wider text-emerald-700">Stock restant</label>
+                                <input id="depot-stock-remaining" type="number" readonly class="mt-1 block w-full rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-extrabold text-emerald-800">
+                            </div>
+                        </div>
+                        <p id="depot-stock-warning" class="hidden rounded-lg bg-rose-50 p-2 text-xs font-semibold text-rose-700"></p>
+                        <div class="flex gap-2 pt-2">
+                            <button type="button" onclick="resetDepotStockForm()" class="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm font-bold text-slate-500 hover:bg-slate-50">Annuler</button>
+                            <button type="submit" class="flex-1 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-bold text-white shadow-sm hover:bg-emerald-700"><i class="fa-solid fa-save mr-1"></i>Enregistrer</button>
+                        </div>
+                    </form>
+                </section>
+
+                <section class="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm lg:col-span-8">
+                    <div class="border-b border-slate-100 p-5">
+                        <h2 class="font-bold text-slate-800">Historique des passages</h2>
+                        <p class="mt-1 text-xs text-slate-400">Les passages les plus récents sont affichés en premier.</p>
+                    </div>
+                    <div class="hidden sm:block">
+                        <table class="w-full divide-y divide-slate-100 text-sm">
+                            <thead class="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                <tr><th class="px-3 py-3 text-left">Date / Dépôt</th><th class="px-3 py-3 text-right">Initial</th><th class="px-3 py-3 text-right">Apportés</th><th class="px-3 py-3 text-right">Ramenés</th><th class="px-3 py-3 text-right">Restant</th><th class="px-3 py-3 text-right">Actions</th></tr>
+                            </thead>
+                            <tbody id="depot-stock-tbody" class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+                    <div id="depot-stock-mobile" class="divide-y divide-slate-100 sm:hidden"></div>
+                    <div id="depot-stock-empty" class="hidden p-10 text-center text-sm text-slate-400"><i class="fa-solid fa-box-open mb-3 block text-4xl text-slate-300"></i>Aucun passage enregistré.</div>
+                </section>
             </div>
         </main>
     </div>
@@ -1853,6 +1936,7 @@
         function showDashboard(isRestored = false) {
             document.getElementById('auth-view').classList.add('hidden');
             document.getElementById('dashboard-view').classList.remove('hidden');
+            showAppPage('sampling');
 
             // Set header values
             document.getElementById('header-driver-name').textContent = currentUser.fullname;
@@ -2046,6 +2130,7 @@
             'Plumieux (56)': 'Adresse à préciser, 22210 Plumieux'
         };
         let pickingSites = { ...DEFAULT_PICKING_SITES };
+        let depotStockEntries = [];
 
         function getTodayLocalDate() {
             const now = new Date();
@@ -2062,6 +2147,202 @@
             select.innerHTML = '<option value="">-- Choisir un site --</option>' + Object.keys(pickingSites)
                 .map(name => `<option value="${name.replace(/"/g, '&quot;')}">${name}</option>`).join('');
             if (previousValue && Object.prototype.hasOwnProperty.call(pickingSites, previousValue)) select.value = previousValue;
+            syncDepotStockSiteDropdown();
+        }
+
+        function showAppPage(pageName) {
+            const isStocks = pageName === 'stocks';
+            document.getElementById('sampling-page').classList.toggle('hidden', isStocks);
+            document.getElementById('crate-stock-page').classList.toggle('hidden', !isStocks);
+            document.getElementById('header-page-toggle').classList.toggle('hidden', isStocks);
+            if (isStocks) {
+                resetDepotStockForm();
+                renderDepotStockPage();
+            }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function syncDepotStockSiteDropdown() {
+            const select = document.getElementById('depot-stock-site');
+            if (!select) return;
+            const previous = select.value;
+            select.innerHTML = '<option value="">-- Choisir un dépôt --</option>' + Object.keys(pickingSites)
+                .map(name => `<option value="${name.replace(/"/g, '&quot;')}">${name}</option>`).join('');
+            if (previous && Object.prototype.hasOwnProperty.call(pickingSites, previous)) select.value = previous;
+        }
+
+        function getDepotEntries(site, excludedId = '') {
+            return depotStockEntries.filter(entry => entry.site === site && entry.id !== excludedId)
+                .sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')) || Number(a.createdAtClient || 0) - Number(b.createdAtClient || 0));
+        }
+
+        function getPreviousDepotStock(site, date, excludedId = '') {
+            const previous = getDepotEntries(site, excludedId).filter(entry => String(entry.date || '') <= String(date || ''));
+            return previous.length ? Number(previous[previous.length - 1].remaining || 0) : 0;
+        }
+
+        function syncDepotStockTrajets() {
+            const select = document.getElementById('depot-stock-trajet');
+            if (!select) return;
+            const site = document.getElementById('depot-stock-site').value;
+            const previous = select.value;
+            const trajetNames = [...new Set(samplingOrders.filter(order => !site || order.pickingCity === site).map(order => order.trajet).filter(Boolean))]
+                .sort((a, b) => {
+                    const newest = name => Math.max(...samplingOrders.filter(order => order.trajet === name).map(order => Date.parse(order.trajetDate || order.datetime || '') || 0));
+                    return newest(b) - newest(a);
+                });
+            select.innerHTML = '<option value="">-- Aucune / saisie manuelle --</option>' + trajetNames.map(name => `<option value="${name.replace(/"/g, '&quot;')}">${name}</option>`).join('');
+            if (previous && trajetNames.includes(previous)) select.value = previous;
+        }
+
+        function refreshDepotStockForm() {
+            const site = document.getElementById('depot-stock-site').value;
+            const date = document.getElementById('depot-stock-date').value || getTodayLocalDate();
+            const editingId = document.getElementById('depot-stock-id').value;
+            document.getElementById('depot-stock-initial').value = getPreviousDepotStock(site, date, editingId);
+            syncDepotStockTrajets();
+            calculateDepotStock();
+        }
+
+        function fillReturnedCratesFromTour() {
+            const trajet = document.getElementById('depot-stock-trajet').value;
+            if (trajet) {
+                const returned = samplingOrders.filter(order => order.trajet === trajet)
+                    .reduce((total, order) => total + Number(order.bacsCount || 0), 0);
+                document.getElementById('depot-stock-returned').value = returned;
+            }
+            calculateDepotStock();
+        }
+
+        function calculateDepotStock() {
+            const initial = Number(document.getElementById('depot-stock-initial')?.value || 0);
+            const delivered = Number(document.getElementById('depot-stock-delivered')?.value || 0);
+            const returned = Number(document.getElementById('depot-stock-returned')?.value || 0);
+            const remaining = initial + delivered - returned;
+            const output = document.getElementById('depot-stock-remaining');
+            const warning = document.getElementById('depot-stock-warning');
+            if (output) output.value = remaining;
+            if (warning) {
+                warning.textContent = remaining < 0 ? 'Attention : le stock calculé est négatif. Vérifiez les quantités saisies.' : '';
+                warning.classList.toggle('hidden', remaining >= 0);
+            }
+            return remaining;
+        }
+
+        function resetDepotStockForm() {
+            const form = document.getElementById('depot-stock-form');
+            if (!form) return;
+            form.reset();
+            document.getElementById('depot-stock-id').value = '';
+            document.getElementById('depot-stock-date').value = getTodayLocalDate();
+            document.getElementById('depot-stock-delivered').value = '0';
+            document.getElementById('depot-stock-returned').value = '0';
+            syncDepotStockSiteDropdown();
+            syncDepotStockTrajets();
+            refreshDepotStockForm();
+        }
+
+        async function saveDepotStockEntry(event) {
+            event.preventDefault();
+            const existingId = document.getElementById('depot-stock-id').value;
+            const existing = depotStockEntries.find(entry => entry.id === existingId);
+            const entry = {
+                id: existingId || `stock_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+                site: document.getElementById('depot-stock-site').value,
+                date: document.getElementById('depot-stock-date').value,
+                trajet: document.getElementById('depot-stock-trajet').value,
+                initial: Number(document.getElementById('depot-stock-initial').value || 0),
+                delivered: Number(document.getElementById('depot-stock-delivered').value || 0),
+                returned: Number(document.getElementById('depot-stock-returned').value || 0),
+                remaining: calculateDepotStock(),
+                createdAtClient: existing?.createdAtClient || Date.now(),
+                updatedAtClient: Date.now(),
+                author: currentUser ? currentUser.username : ''
+            };
+            if (!entry.site || !entry.date) return;
+            const index = depotStockEntries.findIndex(item => item.id === entry.id);
+            if (index >= 0) depotStockEntries[index] = entry;
+            else depotStockEntries.push(entry);
+            if (existing && existing.site !== entry.site) recalculateDepotStockChain(existing.site);
+            recalculateDepotStockChain(entry.site);
+            persistDepotStocksLocally();
+            renderDepotStockPage();
+            resetDepotStockForm();
+            await firestorePushDepotStocks('STOCK_DEPOT_ENREGISTRE', entry);
+            showToast('Passage et stock du dépôt enregistrés.', 'success');
+        }
+
+        function editDepotStockEntry(id) {
+            const entry = depotStockEntries.find(item => item.id === id);
+            if (!entry) return;
+            document.getElementById('depot-stock-id').value = entry.id;
+            document.getElementById('depot-stock-site').value = entry.site;
+            document.getElementById('depot-stock-date').value = entry.date;
+            syncDepotStockTrajets();
+            document.getElementById('depot-stock-trajet').value = entry.trajet || '';
+            document.getElementById('depot-stock-initial').value = entry.initial;
+            document.getElementById('depot-stock-delivered').value = entry.delivered;
+            document.getElementById('depot-stock-returned').value = entry.returned;
+            calculateDepotStock();
+            document.getElementById('depot-stock-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        async function deleteDepotStockEntry(id) {
+            const entry = depotStockEntries.find(item => item.id === id);
+            if (!entry || !confirm(`Supprimer le passage du ${new Date(entry.date + 'T12:00:00').toLocaleDateString('fr-FR')} à ${entry.site} ?`)) return;
+            depotStockEntries = depotStockEntries.filter(item => item.id !== id);
+            recalculateDepotStockChain(entry.site);
+            persistDepotStocksLocally();
+            renderDepotStockPage();
+            resetDepotStockForm();
+            await firestorePushDepotStocks('STOCK_DEPOT_SUPPRIME', entry);
+            showToast('Passage supprimé.', 'info');
+        }
+
+        function persistDepotStocksLocally() {
+            localStorage.setItem('lg_depot_stocks', JSON.stringify(depotStockEntries));
+        }
+
+        function recalculateDepotStockChain(site) {
+            const entries = getDepotEntries(site);
+            entries.forEach((entry, index) => {
+                if (index > 0) entry.initial = Number(entries[index - 1].remaining || 0);
+                entry.remaining = Number(entry.initial || 0) + Number(entry.delivered || 0) - Number(entry.returned || 0);
+            });
+        }
+
+        function renderDepotStockPage() {
+            const cards = document.getElementById('depot-stock-cards');
+            const tbody = document.getElementById('depot-stock-tbody');
+            const mobileList = document.getElementById('depot-stock-mobile');
+            if (!cards || !tbody) return;
+            cards.innerHTML = Object.keys(pickingSites).map(site => {
+                const entries = getDepotEntries(site);
+                const latest = entries[entries.length - 1];
+                return `<div class="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+                    <div class="flex items-start justify-between gap-2"><i class="fa-solid fa-warehouse rounded-lg bg-emerald-50 p-2 text-emerald-600"></i><span class="text-2xl font-extrabold ${latest ? 'text-slate-800' : 'text-slate-300'}">${latest ? latest.remaining : '—'}</span></div>
+                    <h3 class="mt-3 truncate text-sm font-bold text-slate-700" title="${site}">${site}</h3>
+                    <p class="mt-1 text-[10px] text-slate-400">${latest ? `Stock au ${new Date(latest.date + 'T12:00:00').toLocaleDateString('fr-FR')}` : 'Aucun passage enregistré'}</p>
+                </div>`;
+            }).join('');
+            const sorted = [...depotStockEntries].sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')) || Number(b.createdAtClient || 0) - Number(a.createdAtClient || 0));
+            tbody.innerHTML = sorted.map(entry => `<tr class="hover:bg-slate-50">
+                <td class="px-3 py-3"><div class="font-bold text-slate-700">${new Date(entry.date + 'T12:00:00').toLocaleDateString('fr-FR')}</div><div class="text-xs text-slate-500"><i class="fa-solid fa-location-dot mr-1 text-rose-400"></i>${entry.site}</div>${entry.trajet ? `<div class="mt-1 text-[10px] text-emerald-600"><i class="fa-solid fa-route mr-1"></i>${entry.trajet}</div>` : ''}</td>
+                <td class="px-3 py-3 text-right font-semibold text-slate-600">${entry.initial}</td>
+                <td class="px-3 py-3 text-right font-bold text-blue-600">+${entry.delivered}</td>
+                <td class="px-3 py-3 text-right font-bold text-amber-600">−${entry.returned}</td>
+                <td class="px-3 py-3 text-right text-lg font-extrabold ${entry.remaining < 0 ? 'text-rose-600' : 'text-emerald-700'}">${entry.remaining}</td>
+                <td class="px-3 py-3 text-right"><button onclick="editDepotStockEntry('${entry.id}')" class="mr-1 rounded-lg bg-blue-50 p-2 text-blue-600 hover:bg-blue-100" title="Modifier"><i class="fa-solid fa-pen"></i></button><button onclick="deleteDepotStockEntry('${entry.id}')" class="rounded-lg bg-rose-50 p-2 text-rose-600 hover:bg-rose-100" title="Supprimer"><i class="fa-solid fa-trash"></i></button></td>
+            </tr>`).join('');
+            mobileList.innerHTML = sorted.map(entry => `<article class="p-4">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0"><p class="font-bold text-slate-700">${entry.site}</p><p class="text-xs text-slate-400">${new Date(entry.date + 'T12:00:00').toLocaleDateString('fr-FR')}${entry.trajet ? ` · ${entry.trajet}` : ''}</p></div>
+                    <span class="rounded-lg bg-emerald-50 px-3 py-1.5 text-xl font-extrabold ${entry.remaining < 0 ? 'text-rose-600' : 'text-emerald-700'}">${entry.remaining}</span>
+                </div>
+                <div class="mt-3 grid grid-cols-3 gap-2 text-center text-xs"><div class="rounded-lg bg-slate-50 p-2"><span class="block text-[9px] uppercase text-slate-400">Initial</span><b>${entry.initial}</b></div><div class="rounded-lg bg-blue-50 p-2 text-blue-700"><span class="block text-[9px] uppercase text-blue-400">Apportés</span><b>+${entry.delivered}</b></div><div class="rounded-lg bg-amber-50 p-2 text-amber-700"><span class="block text-[9px] uppercase text-amber-500">Ramenés</span><b>−${entry.returned}</b></div></div>
+                <div class="mt-3 flex justify-end gap-2"><button onclick="editDepotStockEntry('${entry.id}')" class="rounded-lg bg-blue-50 px-3 py-2 text-xs font-bold text-blue-600"><i class="fa-solid fa-pen mr-1"></i>Modifier</button><button onclick="deleteDepotStockEntry('${entry.id}')" class="rounded-lg bg-rose-50 px-3 py-2 text-xs font-bold text-rose-600"><i class="fa-solid fa-trash mr-1"></i>Supprimer</button></div>
+            </article>`).join('');
+            document.getElementById('depot-stock-empty').classList.toggle('hidden', sorted.length > 0);
         }
 
         function handlePickingSiteChange(siteName) {
@@ -2835,17 +3116,19 @@
         }
 
         function exportJSON() {
-            if (samplingOrders.length === 0) {
+            if (samplingOrders.length === 0 && depotStockEntries.length === 0) {
                 showToast("Aucune donnée à sauvegarder.", "warning");
                 return;
             }
 
             const backupData = {
                 appName: "Le Gouessant Échantillonnage Potato",
-                version: "1.0",
+                version: "11.0",
                 backupDate: new Date().toISOString(),
                 orders: samplingOrders,
-                varieties: varieties
+                varieties: varieties,
+                pickingSites: pickingSites,
+                depotStocks: depotStockEntries
             };
 
             const jsonString = JSON.stringify(backupData, null, 2);
@@ -2895,12 +3178,27 @@
                                 localStorage.setItem('lg_varieties', JSON.stringify(varieties));
                             }
 
+                            if (importedData.pickingSites && typeof importedData.pickingSites === 'object') {
+                                pickingSites = { ...pickingSites, ...importedData.pickingSites };
+                                localStorage.setItem('lg_picking_sites', JSON.stringify(pickingSites));
+                            }
+
+                            if (Array.isArray(importedData.depotStocks)) {
+                                importedData.depotStocks.forEach(importedEntry => {
+                                    if (!depotStockEntries.some(existing => existing.id === importedEntry.id)) depotStockEntries.push(importedEntry);
+                                });
+                                Object.keys(pickingSites).forEach(recalculateDepotStockChain);
+                                persistDepotStocksLocally();
+                            }
+
                             localStorage.setItem('lg_orders', JSON.stringify(samplingOrders));
                             showToast("Fusion des données réussie !", "success");
 
                             syncVarietyDropdowns();
+                            syncPickingSiteDropdowns();
                             renderOrdersTable();
                             renderKPIs();
+                            renderDepotStockPage();
                         }
                     } else {
                         showToast("Format de fichier non valide ou corrompu.", "error");
@@ -3706,6 +4004,7 @@
         let unsubscribeUsersRealtime = null;
         let unsubscribeVarietiesRealtime = null;
         let unsubscribePickingSitesRealtime = null;
+        let unsubscribeDepotStocksRealtime = null;
         let unsubscribeLogsRealtime = null;
 
         function normalizeAccount(data, id = '') {
@@ -3865,6 +4164,7 @@
             if (unsubscribeLotsRealtime) unsubscribeLotsRealtime();
             if (unsubscribeVarietiesRealtime) unsubscribeVarietiesRealtime();
             if (unsubscribePickingSitesRealtime) unsubscribePickingSitesRealtime();
+            if (unsubscribeDepotStocksRealtime) unsubscribeDepotStocksRealtime();
 
             unsubscribeUsersRealtime = db.collection('users').onSnapshot(snapshot => {
                 accounts = snapshot.docs.map(doc => normalizeAccount(doc.data(), doc.id)).filter(a => a.username && a.active !== false);
@@ -3905,6 +4205,23 @@
                     if (typeof renderSettingsContent === 'function') renderSettingsContent();
                 }
             }, err => console.warn('Dépôts realtime:', err));
+
+            unsubscribeDepotStocksRealtime = db.collection('config').doc('depotStocks').onSnapshot(doc => {
+                if (doc.exists && Array.isArray(doc.data().entries)) {
+                    depotStockEntries = doc.data().entries.map(entry => ({
+                        ...entry,
+                        initial: Number(entry.initial || 0),
+                        delivered: Number(entry.delivered || 0),
+                        returned: Number(entry.returned || 0),
+                        remaining: Number(entry.remaining || 0)
+                    }));
+                    persistDepotStocksLocally();
+                    renderDepotStockPage();
+                }
+            }, err => {
+                console.error('Stocks dépôts realtime:', err);
+                showToast('Lecture du stock des dépôts impossible : ' + err.message, 'error');
+            });
         }
 
         function initializeDatabase() {
@@ -3914,6 +4231,8 @@
             varieties = Array.isArray(cachedVarieties) && cachedVarieties.length ? cachedVarieties : [...DEFAULT_VARIETIES];
             const cachedPickingSites = JSON.parse(localStorage.getItem('lg_picking_sites') || 'null');
             pickingSites = cachedPickingSites && typeof cachedPickingSites === 'object' ? cachedPickingSites : { ...DEFAULT_PICKING_SITES };
+            const cachedDepotStocks = JSON.parse(localStorage.getItem('lg_depot_stocks') || '[]');
+            depotStockEntries = Array.isArray(cachedDepotStocks) ? cachedDepotStocks : [];
             accounts = [];
             samplingOrders = [];
 
@@ -4021,6 +4340,28 @@
             } catch (error) {
                 console.error('Firestore dépôts :', error);
                 showToast('Impossible de synchroniser les dépôts : ' + error.message, 'error');
+            }
+        }
+
+        async function firestorePushDepotStocks(action, entry) {
+            if (!db) initFirestore(true);
+            if (!db) return false;
+            try {
+                await db.collection('config').doc('depotStocks').set({
+                    entries: depotStockEntries,
+                    'Dernière modification': firebase.firestore.FieldValue.serverTimestamp(),
+                    'Modifié par': currentUser ? currentUser.username : ''
+                }, { merge: true });
+                await writeAuditLog(action, {
+                    depot: entry.site,
+                    date: entry.date,
+                    stockRestant: entry.remaining
+                });
+                return true;
+            } catch (error) {
+                console.error('Firestore stocks dépôts :', error);
+                showToast('Impossible de synchroniser le stock des dépôts : ' + error.message, 'error');
+                return false;
             }
         }
 

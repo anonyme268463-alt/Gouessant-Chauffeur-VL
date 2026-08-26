@@ -338,6 +338,23 @@
                                         class="block w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm placeholder-slate-400 font-medium"
                                         placeholder="Nom de la nouvelle tournée...">
                                 </div>
+                                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                    <div>
+                                        <label for="form-trajet-date" class="block text-[10px] font-bold uppercase tracking-wider text-emerald-800">Date de création</label>
+                                        <input id="form-trajet-date" type="date" class="mt-1 block w-full rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                    </div>
+                                    <div>
+                                        <label for="form-trajet-site" class="block text-[10px] font-bold uppercase tracking-wider text-emerald-800">Lieu prenant</label>
+                                        <select id="form-trajet-site" onchange="handlePickingSiteChange(this.value)" class="mt-1 block w-full rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"></select>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label for="form-trajet-address" class="block text-[10px] font-bold uppercase tracking-wider text-emerald-800">Adresse du dépôt</label>
+                                    <input id="form-trajet-address" type="text" class="mt-1 block w-full rounded-lg border border-emerald-200 bg-white px-3 py-2 text-xs text-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Renseignée automatiquement, modifiable si nécessaire">
+                                </div>
+                                <button id="form-trajet-apply-metadata" type="button" onclick="applyTrajetMetadataFromForm()" class="hidden w-full rounded-lg border border-emerald-200 bg-white px-3 py-2 text-xs font-bold text-emerald-700 transition hover:bg-emerald-100">
+                                    <i class="fa-solid fa-arrows-rotate mr-1.5"></i>Appliquer le lieu et la date à tous les lots
+                                </button>
                             </div>
                         </div>
 
@@ -449,29 +466,6 @@
                             <input type="text" id="form-producer"
                                 class="mt-1 block w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm placeholder-slate-400"
                                 placeholder="GAEC de la lande, Ferme Martin...">
-                        </div>
-
-                        <!-- Row 4.5: Picking Location (Lieu prenant) -->
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label for="form-picking-city" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Lieu prenant</label>
-                                <select id="form-picking-city" onchange="handlePickingSiteChange(this.value)"
-                                    class="mt-1 block w-full py-2 px-3 border border-slate-300 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
-                                    <option value="">-- Choisir un site --</option>
-                                    <option value="Ploudaniel (29)">Ploudaniel (29)</option>
-                                    <option value="Beauce (28)">Beauce (28)</option>
-                                    <option value="Naizin (56)">Naizin (56)</option>
-                                    <option value="Kergrist (56)">Kergrist (56)</option>
-                                    <option value="Plumieux (56)">Plumieux (56)</option>
-                                </select>
-                            </div>
-
-                            <div>
-                                <label for="form-picking-address" class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Adresse précise (Lieu prenant)</label>
-                                <input type="text" id="form-picking-address"
-                                    class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm placeholder-slate-400"
-                                    placeholder="Remplie automatiquement, modifiable si besoin">
-                            </div>
                         </div>
 
                         <!-- Row 5: Driver & Date/Time -->
@@ -774,12 +768,15 @@
                 </div>
 
                 <!-- Settings Tabs Menu -->
-                <div class="flex border-b border-slate-200 bg-slate-50">
+                <div class="flex overflow-x-auto border-b border-slate-200 bg-slate-50">
                     <button id="settings-tab-profile" onclick="switchSettingsTab('profile')" class="flex-1 py-3 text-center text-xs font-bold uppercase tracking-wider border-b-2 border-emerald-600 text-emerald-700">
                         <i class="fa-solid fa-user-circle mr-1"></i>Profil
                     </button>
                     <button id="settings-tab-varieties" onclick="switchSettingsTab('varieties')" class="flex-1 py-3 text-center text-xs font-bold uppercase tracking-wider border-b-2 border-transparent text-slate-500 hover:text-slate-800">
                         <i class="fa-solid fa-tags mr-1"></i>Variétés
+                    </button>
+                    <button id="settings-tab-depots" onclick="switchSettingsTab('depots')" class="flex-1 py-3 text-center text-xs font-bold uppercase tracking-wider border-b-2 border-transparent text-slate-500 hover:text-slate-800">
+                        <i class="fa-solid fa-warehouse mr-1"></i>Dépôts
                     </button>
                     <button id="settings-tab-firestore" onclick="switchSettingsTab('firestore')" class="flex-1 py-3 text-center text-xs font-bold uppercase tracking-wider border-b-2 border-transparent text-slate-500 hover:text-slate-800">
                         <i class="fa-solid fa-database mr-1"></i>Firestore
@@ -834,6 +831,21 @@
                         <!-- Variety badge list -->
                         <div id="settings-varieties-list" class="flex flex-wrap gap-1.5 mt-3">
                             <!-- Badges injected via JS -->
+                        </div>
+                    </div>
+
+                    <!-- TAB 3: Dépôts / lieux prenants -->
+                    <div id="settings-panel-depots" class="space-y-4 hidden">
+                        <h4 class="text-sm font-bold text-slate-800 border-b pb-2">Dépôts et lieux prenants</h4>
+                        <p class="text-xs text-slate-400">Modifiez les adresses proposées lors de la création d’une tournée. Les changements seront disponibles sur tous les appareils.</p>
+                        <div id="settings-depots-list" class="space-y-2"></div>
+                        <div class="rounded-xl border border-emerald-100 bg-emerald-50 p-3">
+                            <p class="mb-2 text-[10px] font-bold uppercase tracking-wider text-emerald-800">Ajouter un dépôt</p>
+                            <div class="grid grid-cols-1 gap-2 sm:grid-cols-5">
+                                <input id="setting-new-depot-name" type="text" placeholder="Nom du site" class="sm:col-span-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                                <input id="setting-new-depot-address" type="text" placeholder="Adresse précise" class="sm:col-span-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                                <button type="button" onclick="addPickingSite()" class="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-700"><i class="fa-solid fa-plus mr-1"></i>Ajouter</button>
+                            </div>
                         </div>
                     </div>
 
@@ -1542,6 +1554,27 @@
             return [canvas, contrastCanvas];
         }
 
+        function rotateOcrCanvas(source, degrees) {
+            const normalizedDegrees = ((degrees % 360) + 360) % 360;
+            if (normalizedDegrees === 0) return source;
+            const swapSides = normalizedDegrees === 90 || normalizedDegrees === 270;
+            const canvas = document.createElement('canvas');
+            canvas.width = swapSides ? source.height : source.width;
+            canvas.height = swapSides ? source.width : source.height;
+            const context = canvas.getContext('2d');
+            context.fillStyle = '#fff';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            context.translate(canvas.width / 2, canvas.height / 2);
+            context.rotate(normalizedDegrees * Math.PI / 180);
+            context.drawImage(source, -source.width / 2, -source.height / 2);
+            return canvas;
+        }
+
+        function scoreChronoOcrData(data) {
+            return [data.variety, data.calibre, data.datetime, data.defects, data.producer]
+                .filter(Boolean).length;
+        }
+
         function renderChronoOcrResult(data) {
             document.getElementById('ocr-variety').value = data.variety || '';
             document.getElementById('ocr-calibre').value = data.calibre || '';
@@ -1601,17 +1634,37 @@
                     tessedit_pageseg_mode: '6',
                     preserve_interword_spaces: '1'
                 });
-                const firstPass = await ocrWorker.recognize(enhancedImage, { rotateAuto: true });
+                const orientations = [0, 270, 90, 180];
+                let bestOrientation = 0;
+                let bestScore = -1;
+                let combinedText = '';
+                let parsedData = parseChronoLabelText('');
 
-                let combinedText = firstPass.data.text;
-                let parsedData = parseChronoLabelText(combinedText);
+                for (let index = 0; index < orientations.length; index++) {
+                    const degrees = orientations[index];
+                    ocrPassLabel = `Orientation ${index + 1}/${orientations.length}`;
+                    setLotScannerStatus(`Recherche du sens de lecture (${index + 1}/${orientations.length})…`, 'info');
+                    const orientedImage = rotateOcrCanvas(enhancedImage, degrees);
+                    const pass = await ocrWorker.recognize(orientedImage);
+                    const candidateText = pass.data.text || '';
+                    const candidateData = parseChronoLabelText(candidateText);
+                    const candidateScore = scoreChronoOcrData(candidateData);
+                    if (candidateScore > bestScore || (candidateScore === bestScore && candidateText.length > combinedText.length)) {
+                        bestScore = candidateScore;
+                        bestOrientation = degrees;
+                        combinedText = candidateText;
+                        parsedData = candidateData;
+                    }
+                    if (candidateScore >= 5) break;
+                }
+
                 if ([parsedData.variety, parsedData.calibre, parsedData.datetime, parsedData.defects, parsedData.producer].some(value => !value)) {
                     ocrPassLabel = 'Lecture détaillée';
                     setLotScannerStatus('Deuxième lecture des petites lignes de l’étiquette…', 'info');
                     await ocrWorker.setParameters({
                         tessedit_pageseg_mode: '11'
                     });
-                    const secondPass = await ocrWorker.recognize(binaryImage, { rotateAuto: true });
+                    const secondPass = await ocrWorker.recognize(rotateOcrCanvas(binaryImage, bestOrientation));
                     combinedText += `\n${secondPass.data.text}`;
                     parsedData = parseChronoLabelText(combinedText);
                 }
@@ -1939,7 +1992,14 @@
             const prevVal = select.value;
 
             // Get all unique trajets from existing orders (excluding empty/null)
-            const existingTrajets = [...new Set(samplingOrders.map(o => o.trajet).filter(t => t && t.trim()))];
+            const existingTrajets = [...new Set(samplingOrders.map(o => o.trajet).filter(t => t && t.trim()))]
+                .sort((a, b) => {
+                    const newest = trajet => Math.max(...samplingOrders.filter(order => order.trajet === trajet).map(order => {
+                        const timestamp = Date.parse(order.trajetDate || order.datetime || '');
+                        return Number.isFinite(timestamp) ? timestamp : 0;
+                    }));
+                    return newest(b) - newest(a) || a.localeCompare(b);
+                });
 
             let html = `<option value="" disabled selected>-- Choisir un trajet --</option>`;
             existingTrajets.forEach(t => {
@@ -1956,28 +2016,81 @@
         function handleTrajetSelectChange(val) {
             const container = document.getElementById('custom-trajet-container');
             const customInput = document.getElementById('form-trajet-custom');
+            const applyButton = document.getElementById('form-trajet-apply-metadata');
             if (val === '__NEW__') {
                 container.classList.remove('hidden');
                 customInput.setAttribute('required', 'required');
+                document.getElementById('form-trajet-date').value = getTodayLocalDate();
+                document.getElementById('form-trajet-site').value = '';
+                document.getElementById('form-trajet-address').value = '';
+                applyButton.classList.add('hidden');
                 customInput.focus();
             } else {
                 container.classList.add('hidden');
                 customInput.removeAttribute('required');
                 customInput.value = "";
+                const routeOrder = samplingOrders.find(order => (order.trajet || '') === (val || ''));
+                const fallbackDate = routeOrder?.datetime ? String(routeOrder.datetime).slice(0, 10) : getTodayLocalDate();
+                document.getElementById('form-trajet-date').value = routeOrder?.trajetDate || fallbackDate;
+                document.getElementById('form-trajet-site').value = routeOrder?.pickingCity || '';
+                document.getElementById('form-trajet-address').value = routeOrder?.pickingAddress || '';
+                applyButton.classList.toggle('hidden', !val);
             }
         }
 
-        const PICKING_SITES = {
+        const DEFAULT_PICKING_SITES = {
             'Ploudaniel (29)': 'Rue Jean Mermoz, ZA de Mescoden, 29260 Ploudaniel',
             'Beauce (28)': 'Ferme des Perrières, 5 rue des Perrières, 28800 Moriers',
             'Naizin (56)': 'Adresse à préciser, 56500 Naizin',
             'Kergrist (56)': '7 Linhouédec, 56300 Kergrist',
             'Plumieux (56)': 'Adresse à préciser, 22210 Plumieux'
         };
+        let pickingSites = { ...DEFAULT_PICKING_SITES };
+
+        function getTodayLocalDate() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function syncPickingSiteDropdowns() {
+            const select = document.getElementById('form-trajet-site');
+            if (!select) return;
+            const previousValue = select.value;
+            select.innerHTML = '<option value="">-- Choisir un site --</option>' + Object.keys(pickingSites)
+                .map(name => `<option value="${name.replace(/"/g, '&quot;')}">${name}</option>`).join('');
+            if (previousValue && Object.prototype.hasOwnProperty.call(pickingSites, previousValue)) select.value = previousValue;
+        }
 
         function handlePickingSiteChange(siteName) {
-            const addressInput = document.getElementById('form-picking-address');
-            if (addressInput) addressInput.value = PICKING_SITES[siteName] || '';
+            const addressInput = document.getElementById('form-trajet-address');
+            if (addressInput) addressInput.value = pickingSites[siteName] || '';
+        }
+
+        async function applyTrajetMetadataFromForm() {
+            const trajet = document.getElementById('form-trajet-select').value;
+            if (!trajet || trajet === '__NEW__') return;
+            const routeOrders = samplingOrders.filter(order => order.trajet === trajet);
+            if (!routeOrders.length) return;
+            const trajetDate = document.getElementById('form-trajet-date').value;
+            const pickingCity = document.getElementById('form-trajet-site').value;
+            const pickingAddress = document.getElementById('form-trajet-address').value.trim();
+            routeOrders.forEach(order => {
+                order.trajetDate = trajetDate;
+                order.pickingCity = pickingCity;
+                order.pickingAddress = pickingAddress;
+            });
+            localStorage.setItem('lg_orders', JSON.stringify(samplingOrders));
+            renderOrdersTable();
+            try {
+                for (const order of routeOrders) await firestorePushOrder(order);
+                showToast(`Lieu et date appliqués aux ${routeOrders.length} lots de la tournée.`, 'success');
+            } catch (error) {
+                console.error('Mise à jour tournée :', error);
+                showToast('La mise à jour Firestore de la tournée a échoué : ' + (error.message || error), 'error');
+            }
         }
 
         function startAddLotToTrajet(trajetName) {
@@ -2265,10 +2378,15 @@
                 groups[trajetName].push(order);
             });
 
+            const getGroupTimestamp = name => Math.max(...groups[name].map(order => {
+                const dateValue = order.trajetDate || (order.datetime ? String(order.datetime).slice(0, 10) : '');
+                const timestamp = Date.parse(dateValue || order.datetime || 0);
+                return Number.isFinite(timestamp) ? timestamp : 0;
+            }));
             const sortedGroupNames = Object.keys(groups).sort((a, b) => {
                 if (a === 'Sans Trajet') return 1;
                 if (b === 'Sans Trajet') return -1;
-                return a.localeCompare(b);
+                return getGroupTimestamp(b) - getGroupTimestamp(a) || a.localeCompare(b);
             });
 
             let rowsHTML = "";
@@ -2283,6 +2401,8 @@
                 const groupStatus = groupStatuses.length === 1 ? groupStatuses[0] : '';
                 const statusOptions = TRAJET_STATUSES.map(status => `<option value="${status}" ${status === groupStatus ? 'selected' : ''}>${status}</option>`).join('');
                 const routeSchedule = groupLots.find(order => order.routeSchedule)?.routeSchedule || null;
+                const routeDate = groupLots.find(order => order.trajetDate)?.trajetDate || (groupLots[0].datetime ? String(groupLots[0].datetime).slice(0, 10) : '');
+                const routeSite = groupLots.find(order => order.pickingCity)?.pickingCity || '';
 
                 rowsHTML += `
                     <tr class="bg-gradient-to-r from-emerald-50 to-slate-50 hover:from-emerald-100/70 cursor-pointer select-none transition border-y border-emerald-100 no-print" onclick="toggleTrajetCollapse('${trajetName.replace(/'/g, "\\'")}')">
@@ -2292,7 +2412,13 @@
                                   <span class="flex min-w-0 items-center gap-2">
                                     <i class="fa-solid ${chevronIcon} text-slate-400 text-[10px]"></i>
                                     <i class="fa-solid fa-route text-emerald-600"></i>
-                                    <span class="truncate text-sm">${trajetName}</span>
+                                    <span class="min-w-0">
+                                        <span class="block truncate text-sm">${trajetName}</span>
+                                        <span class="mt-0.5 flex flex-wrap gap-x-2 text-[9px] font-semibold text-slate-500">
+                                            ${routeDate ? `<span><i class="fa-regular fa-calendar mr-1"></i>${new Date(routeDate + 'T12:00:00').toLocaleDateString('fr-FR')}</span>` : ''}
+                                            ${routeSite ? `<span><i class="fa-solid fa-location-dot mr-1 text-rose-500"></i>${routeSite}</span>` : ''}
+                                        </span>
+                                    </span>
                                   </span>
                                   <div class="flex flex-wrap items-center justify-end gap-1.5">
                                     <select onclick="event.stopPropagation()" onchange="event.stopPropagation(); updateTrajetStatus('${trajetName.replace(/'/g, "\\'")}', this.value, this)" class="max-w-[160px] rounded-lg border border-slate-300 bg-white px-2 py-1 text-[10px] font-bold text-slate-700 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500" title="Modifier le statut de tous les lots">
@@ -2427,8 +2553,9 @@
             const weight = weightVal ? parseFloat(weightVal) : "";
 
             const producer = document.getElementById('form-producer').value.trim() || "";
-            const pickingCity = document.getElementById('form-picking-city').value.trim() || "";
-            const pickingAddress = document.getElementById('form-picking-address').value.trim() || "";
+            const pickingCity = document.getElementById('form-trajet-site').value.trim() || "";
+            const pickingAddress = document.getElementById('form-trajet-address').value.trim() || "";
+            const trajetDate = document.getElementById('form-trajet-date').value || getTodayLocalDate();
             const driver = document.getElementById('form-driver').value.trim();
             const datetime = document.getElementById('form-datetime').value;
             const comment = document.getElementById('form-comment').value.trim();
@@ -2462,7 +2589,7 @@
 
                     samplingOrders[index] = {
                         id: orderIdField, lotNumber, variety, calibre, bacsCount, weight, producer, pickingCity, pickingAddress, driver, datetime, status, comment,
-                        trajet, qualityAspect, qualityGreening, qualityScab, qualityScurf, qualityDamage, qualityRot,
+                        trajet, trajetDate, qualityAspect, qualityGreening, qualityScab, qualityScurf, qualityDamage, qualityRot,
                         routeSchedule: oldTrajet === trajet
                             ? (oldOrder.routeSchedule || null)
                             : (existingTrajetOrder?.routeSchedule || oldOrder.routeSchedule || null)
@@ -2481,7 +2608,7 @@
                 const newOrder = {
                     id: 'order-' + Date.now(),
                     lotNumber, variety, calibre, bacsCount, weight, producer, pickingCity, pickingAddress, driver, datetime, status, comment,
-                    trajet, qualityAspect, qualityGreening, qualityScab, qualityScurf, qualityDamage, qualityRot,
+                    trajet, trajetDate, qualityAspect, qualityGreening, qualityScab, qualityScurf, qualityDamage, qualityRot,
                     routeSchedule: existingTrajetOrder?.routeSchedule || null
                 };
                 samplingOrders.push(newOrder);
@@ -2530,10 +2657,6 @@
             document.getElementById('form-weight').value = order.weight;
             document.getElementById('form-calibre').value = order.calibre || "";
             document.getElementById('form-producer').value = order.producer;
-            const pickingSiteSelect = document.getElementById('form-picking-city');
-            const knownSite = Object.keys(PICKING_SITES).find(site => site === order.pickingCity || site.startsWith((order.pickingCity || '') + ' '));
-            pickingSiteSelect.value = knownSite || "";
-            document.getElementById('form-picking-address').value = order.pickingAddress || "";
             document.getElementById('form-driver').value = order.driver;
             document.getElementById('form-datetime').value = order.datetime;
             document.getElementById('form-comment').value = order.comment;
@@ -2810,15 +2933,21 @@
             // Hide all panels
             document.getElementById('settings-panel-profile').classList.add('hidden');
             document.getElementById('settings-panel-varieties').classList.add('hidden');
+            document.getElementById('settings-panel-depots').classList.add('hidden');
+            document.getElementById('settings-panel-firestore').classList.add('hidden');
             document.getElementById('settings-panel-admin').classList.add('hidden');
 
             // Reset tab styles
             const tabProfile = document.getElementById('settings-tab-profile');
             const tabVarieties = document.getElementById('settings-tab-varieties');
+            const tabDepots = document.getElementById('settings-tab-depots');
+            const tabFirestore = document.getElementById('settings-tab-firestore');
             const tabAdmin = document.getElementById('settings-tab-admin');
 
             tabProfile.className = "flex-1 py-3 text-center text-xs font-bold uppercase tracking-wider border-b-2 border-transparent text-slate-500 hover:text-slate-800";
             tabVarieties.className = "flex-1 py-3 text-center text-xs font-bold uppercase tracking-wider border-b-2 border-transparent text-slate-500 hover:text-slate-800";
+            tabDepots.className = "flex-1 py-3 text-center text-xs font-bold uppercase tracking-wider border-b-2 border-transparent text-slate-500 hover:text-slate-800";
+            tabFirestore.className = "flex-1 py-3 text-center text-xs font-bold uppercase tracking-wider border-b-2 border-transparent text-slate-500 hover:text-slate-800";
             tabAdmin.className = "flex-1 py-3 text-center text-xs font-bold uppercase tracking-wider border-b-2 border-transparent text-slate-500 hover:text-slate-800";
 
             if (tabName === 'profile') {
@@ -2827,6 +2956,12 @@
             } else if (tabName === 'varieties') {
                 document.getElementById('settings-panel-varieties').classList.remove('hidden');
                 tabVarieties.className = "flex-1 py-3 text-center text-xs font-bold uppercase tracking-wider border-b-2 border-emerald-600 text-emerald-700";
+            } else if (tabName === 'depots') {
+                document.getElementById('settings-panel-depots').classList.remove('hidden');
+                tabDepots.className = "flex-1 py-3 text-center text-xs font-bold uppercase tracking-wider border-b-2 border-emerald-600 text-emerald-700";
+            } else if (tabName === 'firestore') {
+                document.getElementById('settings-panel-firestore').classList.remove('hidden');
+                tabFirestore.className = "flex-1 py-3 text-center text-xs font-bold uppercase tracking-wider border-b-2 border-emerald-600 text-emerald-700";
             } else if (tabName === 'admin') {
                 document.getElementById('settings-panel-admin').classList.remove('hidden');
                 tabAdmin.className = "flex-1 py-3 text-center text-xs font-bold uppercase tracking-wider border-b-2 border-emerald-600 text-emerald-700";
@@ -2928,6 +3063,19 @@
                 `;
             });
             container.innerHTML = badgesHTML;
+
+            const depotsContainer = document.getElementById('settings-depots-list');
+            if (depotsContainer) {
+                depotsContainer.innerHTML = Object.entries(pickingSites).map(([name, address], index) => `
+                    <div class="grid grid-cols-1 gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-12">
+                        <input id="depot-name-${index}" value="${String(name).replace(/"/g, '&quot;')}" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold sm:col-span-3">
+                        <input id="depot-address-${index}" value="${String(address).replace(/"/g, '&quot;')}" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs sm:col-span-7">
+                        <div class="flex justify-end gap-1 sm:col-span-2">
+                            <button type="button" onclick="updatePickingSite('${String(name).replace(/'/g, "\\'")}', ${index})" class="rounded-lg bg-emerald-600 px-2.5 py-2 text-xs font-bold text-white" title="Enregistrer"><i class="fa-solid fa-floppy-disk"></i></button>
+                            <button type="button" onclick="removePickingSite('${String(name).replace(/'/g, "\\'")}')" class="rounded-lg bg-rose-50 px-2.5 py-2 text-xs font-bold text-rose-600" title="Supprimer"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </div>`).join('');
+            }
 
             // Render Driver Accounts inside Admin Panel
             const accountsList = document.getElementById('settings-accounts-list');
@@ -3086,6 +3234,57 @@
             showToast(`Variété ${name} retirée.`, "info");
             renderSettingsContent();
             syncVarietyDropdowns();
+        }
+
+        function persistPickingSites() {
+            localStorage.setItem('lg_picking_sites', JSON.stringify(pickingSites));
+            syncPickingSiteDropdowns();
+            renderSettingsContent();
+            firestorePushPickingSites();
+        }
+
+        function addPickingSite() {
+            const nameInput = document.getElementById('setting-new-depot-name');
+            const addressInput = document.getElementById('setting-new-depot-address');
+            const name = nameInput.value.trim();
+            const address = addressInput.value.trim();
+            if (!name || !address) {
+                showToast('Renseignez le nom et l’adresse du dépôt.', 'warning');
+                return;
+            }
+            if (Object.keys(pickingSites).some(site => site.toLowerCase() === name.toLowerCase())) {
+                showToast('Ce dépôt existe déjà.', 'warning');
+                return;
+            }
+            pickingSites[name] = address;
+            nameInput.value = '';
+            addressInput.value = '';
+            persistPickingSites();
+            showToast(`Dépôt ${name} ajouté.`, 'success');
+        }
+
+        function updatePickingSite(originalName, index) {
+            const name = document.getElementById(`depot-name-${index}`).value.trim();
+            const address = document.getElementById(`depot-address-${index}`).value.trim();
+            if (!name || !address) {
+                showToast('Le nom et l’adresse sont obligatoires.', 'warning');
+                return;
+            }
+            if (name !== originalName && Object.keys(pickingSites).some(site => site.toLowerCase() === name.toLowerCase())) {
+                showToast('Un autre dépôt porte déjà ce nom.', 'warning');
+                return;
+            }
+            delete pickingSites[originalName];
+            pickingSites[name] = address;
+            persistPickingSites();
+            showToast(`Dépôt ${name} mis à jour.`, 'success');
+        }
+
+        function removePickingSite(name) {
+            if (!confirm(`Supprimer le dépôt « ${name} » de la liste ? Les anciennes tournées conserveront leur lieu.`)) return;
+            delete pickingSites[name];
+            persistPickingSites();
+            showToast(`Dépôt ${name} retiré.`, 'info');
         }
 
         function deleteAccount(username) {
@@ -3506,6 +3705,7 @@
         let unsubscribeLotsRealtime = null;
         let unsubscribeUsersRealtime = null;
         let unsubscribeVarietiesRealtime = null;
+        let unsubscribePickingSitesRealtime = null;
         let unsubscribeLogsRealtime = null;
 
         function normalizeAccount(data, id = '') {
@@ -3553,6 +3753,7 @@
                 status: data.status ?? data.Statut ?? 'En cours',
                 comment: data.comment ?? data.Observations ?? '',
                 trajet: data.trajet ?? data.Trajet ?? parentTrajet,
+                trajetDate: data.trajetDate ?? data['Date de tournée'] ?? (datetime ? String(datetime).slice(0, 10) : ''),
                 tourNumber: data.tourNumber ?? data['Numéro de tournée'] ?? '',
                 routeSchedule: data.routeSchedule ?? data['Planning routier'] ?? null,
                 qualityAspect: data.qualityAspect ?? data.Aspect ?? 'Non renseigné',
@@ -3568,6 +3769,7 @@
             return {
                 id: order.id,
                 Trajet: order.trajet || '',
+                'Date de tournée': order.trajetDate || (order.datetime ? String(order.datetime).slice(0, 10) : ''),
                 'Numéro de Lot': order.lotNumber || '',
                 'Variété': order.variety || 'Non renseignée',
                 Bacs: order.bacsCount === '' ? '' : Number(order.bacsCount),
@@ -3592,19 +3794,54 @@
             };
         }
 
-        async function writeAuditLog(action, details = {}) {
-            if (!db) return;
+        async function writeAuditLog(action, details = {}, strict = false) {
+            if (!db) {
+                if (strict) throw new Error('Firestore non initialisé');
+                return false;
+            }
             try {
-                await db.collection('Logs').add({
+                const identifier = currentUser ? currentUser.username : 'systeme';
+                const logId = `${Date.now()}_${identifier.replace(/[^a-z0-9_-]/gi, '_')}_${Math.random().toString(36).slice(2, 8)}`;
+                await db.collection('Logs').doc(logId).set({
                     Action: action,
                     Utilisateur: currentUser ? currentUser.fullname : 'Système / non connecté',
-                    Identifiant: currentUser ? currentUser.username : '',
+                    Identifiant: identifier,
                     Date: firebase.firestore.FieldValue.serverTimestamp(),
+                    DateClient: new Date().toISOString(),
                     Details: details,
-                    Navigateur: navigator.userAgent.slice(0, 250)
+                    Navigateur: navigator.userAgent.slice(0, 250),
+                    Page: location.pathname
                 });
+                return true;
             } catch (err) {
                 console.warn('Impossible d’écrire le journal :', err);
+                if (strict) throw err;
+                return false;
+            }
+        }
+
+        async function recordCurrentSession(action = 'CONNEXION', knownUserRef = null) {
+            if (!db || !currentUser) return false;
+            let userRef = knownUserRef || db.collection('users').doc(currentUser.username.toLowerCase());
+            try {
+                if (!knownUserRef) {
+                    const direct = await userRef.get();
+                    if (!direct.exists) {
+                        const match = await db.collection('users').where('Identifiant', '==', currentUser.username).limit(1).get();
+                        if (!match.empty) userRef = match.docs[0].ref;
+                    }
+                }
+                await userRef.set({
+                    'Dernière connexion': firebase.firestore.FieldValue.serverTimestamp(),
+                    'Dernière activité': firebase.firestore.FieldValue.serverTimestamp(),
+                    'Dernier navigateur': navigator.userAgent.slice(0, 250)
+                }, { merge: true });
+                await writeAuditLog(action, { resultat: 'succès', sessionRestauree: action === 'SESSION_RESTAUREE' }, true);
+                return true;
+            } catch (error) {
+                console.error('Journal de connexion impossible :', error);
+                showToast('Connexion réussie, mais le journal Firestore n’a pas pu être mis à jour.', 'warning');
+                return false;
             }
         }
 
@@ -3627,6 +3864,7 @@
             if (unsubscribeUsersRealtime) unsubscribeUsersRealtime();
             if (unsubscribeLotsRealtime) unsubscribeLotsRealtime();
             if (unsubscribeVarietiesRealtime) unsubscribeVarietiesRealtime();
+            if (unsubscribePickingSitesRealtime) unsubscribePickingSitesRealtime();
 
             unsubscribeUsersRealtime = db.collection('users').onSnapshot(snapshot => {
                 accounts = snapshot.docs.map(doc => normalizeAccount(doc.data(), doc.id)).filter(a => a.username && a.active !== false);
@@ -3656,6 +3894,17 @@
                     if (typeof renderSettingsContent === 'function') renderSettingsContent();
                 }
             }, err => console.warn('Variétés realtime:', err));
+
+            unsubscribePickingSitesRealtime = db.collection('config').doc('pickingSites').onSnapshot(doc => {
+                if (doc.exists && Array.isArray(doc.data().sites)) {
+                    pickingSites = Object.fromEntries(doc.data().sites
+                        .filter(site => site && site.name)
+                        .map(site => [String(site.name), String(site.address || '')]));
+                    localStorage.setItem('lg_picking_sites', JSON.stringify(pickingSites));
+                    syncPickingSiteDropdowns();
+                    if (typeof renderSettingsContent === 'function') renderSettingsContent();
+                }
+            }, err => console.warn('Dépôts realtime:', err));
         }
 
         function initializeDatabase() {
@@ -3663,6 +3912,8 @@
             localStorage.removeItem('lg_orders');
             const cachedVarieties = JSON.parse(localStorage.getItem('lg_varieties') || 'null');
             varieties = Array.isArray(cachedVarieties) && cachedVarieties.length ? cachedVarieties : [...DEFAULT_VARIETIES];
+            const cachedPickingSites = JSON.parse(localStorage.getItem('lg_picking_sites') || 'null');
+            pickingSites = cachedPickingSites && typeof cachedPickingSites === 'object' ? cachedPickingSites : { ...DEFAULT_PICKING_SITES };
             accounts = [];
             samplingOrders = [];
 
@@ -3675,11 +3926,15 @@
             if (loginTab) loginTab.className = 'w-full py-2.5 text-sm font-semibold rounded-lg text-white bg-emerald-600 shadow-md';
 
             const savedUser = localStorage.getItem('lg_current_user') || sessionStorage.getItem('lg_current_user');
+            let restoredSession = false;
             if (savedUser) {
                 try { currentUser = JSON.parse(savedUser); showDashboard(!!localStorage.getItem('lg_current_user')); }
                 catch { showAuth(); }
+                restoredSession = !!currentUser;
             } else showAuth();
             initFirestore(true);
+            syncPickingSiteDropdowns();
+            if (restoredSession) window.setTimeout(() => recordCurrentSession('SESSION_RESTAUREE'), 250);
         }
 
         async function handleLogin(event) {
@@ -3691,9 +3946,13 @@
             try {
                 const direct = await db.collection('users').doc(username).get();
                 let user = direct.exists ? normalizeAccount(direct.data(), direct.id) : null;
+                let userDocRef = direct.exists ? direct.ref : null;
                 if (!user) {
                     const snap = await db.collection('users').where('Identifiant', '==', username).limit(1).get();
-                    if (!snap.empty) user = normalizeAccount(snap.docs[0].data(), snap.docs[0].id);
+                    if (!snap.empty) {
+                        user = normalizeAccount(snap.docs[0].data(), snap.docs[0].id);
+                        userDocRef = snap.docs[0].ref;
+                    }
                 }
                 if (!user || user.active === false || user.password !== password) throw new Error('INVALID_LOGIN');
                 currentUser = user;
@@ -3701,7 +3960,7 @@
                 sessionStorage.removeItem('lg_current_user');
                 (rememberMe ? localStorage : sessionStorage).setItem('lg_current_user', JSON.stringify(user));
                 showDashboard(rememberMe);
-                await writeAuditLog('CONNEXION', { resultat: 'succès' });
+                await recordCurrentSession('CONNEXION', userDocRef);
                 showToast(`Bienvenue, ${user.fullname} !`, 'success');
             } catch (err) {
                 showToast('Identifiant ou mot de passe incorrect.', 'error');
@@ -3720,6 +3979,9 @@
             await trajetRef.set({
                 Destination: order.trajet || 'Sans Trajet',
                 'Numéro de tournée': order.tourNumber || '',
+                'Date de création': order.trajetDate || (order.datetime ? String(order.datetime).slice(0, 10) : ''),
+                'Lieu prenant': order.pickingCity || '',
+                Adresse: order.pickingAddress || '',
                 Actif: true,
                 'Dernière modification': firebase.firestore.FieldValue.serverTimestamp()
             }, { merge: true });
@@ -3744,6 +4006,22 @@
             if (!db) initFirestore(true);
             await db.collection('users').doc(username.toLowerCase()).delete();
             await writeAuditLog('COMPTE_SUPPRIME', { identifiant: username });
+        }
+
+        async function firestorePushPickingSites() {
+            if (!db) initFirestore(true);
+            if (!db) return;
+            try {
+                await db.collection('config').doc('pickingSites').set({
+                    sites: Object.entries(pickingSites).map(([name, address]) => ({ name, address })),
+                    'Dernière modification': firebase.firestore.FieldValue.serverTimestamp(),
+                    'Modifié par': currentUser ? currentUser.username : ''
+                }, { merge: true });
+                await writeAuditLog('DEPOTS_MODIFIES', { nombre: Object.keys(pickingSites).length });
+            } catch (error) {
+                console.error('Firestore dépôts :', error);
+                showToast('Impossible de synchroniser les dépôts : ' + error.message, 'error');
+            }
         }
 
         function syncNowWithFirestore(isSilent = false) {
@@ -3805,7 +4083,12 @@
                     const details = JSON.stringify(d.Details || {}).replace(/</g, '&lt;');
                     return `<tr class="border-t border-slate-100"><td class="p-2 whitespace-nowrap">${date}</td><td class="p-2">${d.Utilisateur || ''}<br><span class="text-slate-400">${d.Identifiant || ''}</span></td><td class="p-2 font-bold">${d.Action || ''}</td><td class="p-2 font-mono break-all">${details}</td></tr>`;
                 }).join('') || '<tr><td colspan="4" class="p-4 text-center text-slate-400">Aucun log</td></tr>';
-            }, err => console.warn('Logs realtime:', err));
+            }, err => {
+                console.warn('Logs realtime:', err);
+                const body = document.getElementById('admin-logs-body');
+                if (body) body.innerHTML = `<tr><td colspan="4" class="p-4 text-center font-bold text-rose-600">Journal inaccessible : ${String(err.message || err).replace(/</g, '&lt;')}</td></tr>`;
+                showToast('Le journal Firestore est inaccessible. Vérifiez les règles de la collection Logs.', 'error');
+            });
         }
 
         // Initialize App on DOM Load
